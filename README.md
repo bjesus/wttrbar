@@ -26,6 +26,8 @@ For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) packag
 - `--hide-conditions` - show a shorter descrpition next to each hour, like `7° Mist` instead of `7° Mist, Overcast 81%, Sunshine 17%, Frost 15%`
 - `--fahrenheit` - use fahrenheit instead of celsius
 
+e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
+
 ## Waybar configuration
 
 Assuming `wttrbar` is in your path, it can be used like:
