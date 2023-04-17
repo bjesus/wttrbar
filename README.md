@@ -10,6 +10,12 @@ a simple but detailed weather indicator for <a href="https://github.com/Alexays/
 </p>
 <hr />
 
+## Installation
+
+Compile yourself using `cargo build --release`, or download the precompiled binary from the [releases](https://github.com/bjesus/wttrbar/releases) page.
+
+For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) package.
+
 
 ## Usage
 
