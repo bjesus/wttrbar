@@ -118,7 +118,7 @@ fn main() {
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let text = format!("{} {}", weather_icon, indicator);
+    let text = format!("{} {}°", weather_icon, indicator);
     data.insert("text", text);
 
     let mut tooltip = format!(
