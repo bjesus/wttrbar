@@ -75,7 +75,7 @@ fn main() {
         None => "temp_C",
     };
 
-    let date_format = match args.iter().position(|arg| arg == "--dateformat") {
+    let date_format = match args.iter().position(|arg| arg == "--date-format") {
         Some(index) => args.get(index + 1).unwrap(),
         None => "%Y-%m-%d",
     };
