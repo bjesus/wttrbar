@@ -9,6 +9,8 @@ a simple but detailed weather indicator for <a href="https://github.com/Alexays/
 <img src="https://user-images.githubusercontent.com/55081/232401699-b8345fe0-ffce-4353-b51b-615389153448.png" height="400">
 </p>
 <hr />
+
+
 ## Usage
 
 - `--ampm` - display time in AM/PM format
