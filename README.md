@@ -31,7 +31,7 @@ For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) packag
 Assuming `wttrbar` is in your path, it can be used like:
 ```json
 "custom/weather": {
-    "format": "{}",
+    "format": "{} °",
     "tooltip": true,
     "interval": 3600,
     "exec": "wttrbar",
