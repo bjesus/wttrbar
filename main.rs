@@ -169,8 +169,8 @@ fn main() {
 
         tooltip += &format!(
             "🌅 {} 🌇 {}\n",
-            day["astronomy"][0]["sunrise"].as_str().unwrap(),
-            day["astronomy"][0]["sunset"].as_str().unwrap(),
+            format_ampm_time(&day, "sunrise", ampm),
+            format_ampm_time(&day, "sunset", ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
             if i == 0 && hour["time"].as_str().unwrap().parse::<u32>().unwrap() < now.hour() - 2 {
@@ -261,4 +261,15 @@ fn format_chances(hour: &serde_json::Value) -> String {
         .map(|&(name, chance_value)| format!("{} {}%", name, chance_value))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
+    if ampm {
+        day["astronomy"][0][key].as_str().unwrap().to_string()
+    } else {
+        NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
+            .unwrap()
+            .format("%H:%M")
+            .to_string()
+    }
 }
