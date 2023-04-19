@@ -106,7 +106,6 @@ fn main() {
 
     let current_condition = &weather["current_condition"][0];
     let indicator = current_condition[main_indicator].as_str().unwrap();
-    // let feels_like = current_condition["FeelsLikeC"].as_str().unwrap();
     let feels_like = if fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
