@@ -16,6 +16,7 @@ Compile yourself using `cargo build --release`, or download the precompiled bina
 
 For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) package.
 
+For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/misc/wttrbar/default.nix) package.
 
 ## Usage
 
