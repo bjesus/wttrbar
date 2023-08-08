@@ -18,6 +18,16 @@ For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) packag
 
 For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/misc/wttrbar/default.nix) package.
 
+### Icons
+
+The icons in **wttrbar** are designed with the [Noto Emoji](https://github.com/googlefonts/noto-emoji) font in mind.
+
+While Noto Emoji provides support for all used emojis, it's worth noting that it's not strictly required. Users have the flexibility to choose other fonts as well, though the visual experience might vary.
+
+For Arch Linux, use the [Noto Fonts](https://archlinux.org/packages/extra/any/noto-fonts-emoji/) package.
+
+For NixOS, please read the [NixOS Wiki](https://nixos.wiki/wiki/Fonts).
+
 ## Usage
 
 - `--ampm` - display time in AM/PM format
