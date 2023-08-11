@@ -99,10 +99,33 @@ fn main() {
         format!("https://wttr.in/{}?format=j1", location)
     };
 
-    let weather = get(weather_url)
-        .unwrap()
-        .json::<serde_json::Value>()
-        .unwrap();
+    let weather_result = get(weather_url);
+
+    if let Err(_) = &weather_result {
+        data.insert("text", "❌");
+        data.insert(
+            "tooltip",
+            "Network error\nPkease check your internet connection",
+        );
+        let json_data = json!(data);
+        println!("{}", json_data);
+        return;
+    }
+
+    let weather = weather_result.unwrap().json::<serde_json::Value>();
+
+    if let Err(_) = &weather {
+        data.insert("text", "❌");
+        data.insert(
+            "tooltip",
+            "Something is wrong with wttr.in\nPlease try again later",
+        );
+        let json_data = json!(data);
+        println!("{}", json_data);
+        return;
+    }
+
+    let weather = weather.unwrap();
 
     let current_condition = &weather["current_condition"][0];
     let indicator = current_condition[main_indicator].as_str().unwrap();
@@ -118,7 +141,7 @@ fn main() {
         .map(|(_, symbol)| symbol)
         .unwrap();
     let text = format!("{} {}", weather_icon, indicator);
-    data.insert("text", text);
+    data.insert("text", text.as_str());
 
     let mut tooltip = format!(
         "<b>{}</b> {}°\n",
@@ -204,7 +227,7 @@ fn main() {
             tooltip += &tooltip_line;
         }
     }
-    data.insert("tooltip", tooltip);
+    data.insert("tooltip", tooltip.as_str());
 
     let json_data = json!(data);
     println!("{}", json_data);
