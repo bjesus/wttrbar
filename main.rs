@@ -103,6 +103,7 @@ fn main() {
         .unwrap()
         .json::<serde_json::Value>()
         .unwrap();
+    dbg!(&weather);
 
     let current_condition = &weather["current_condition"][0];
     let indicator = current_condition[main_indicator].as_str().unwrap();
@@ -139,6 +140,13 @@ fn main() {
     tooltip += &format!(
         "Humidity: {}%\n",
         current_condition["humidity"].as_str().unwrap()
+    );
+    let nearest_area = &weather["nearest_area"][0];
+    tooltip += &format!(
+        "Location: {}, {}, {}\n",
+        nearest_area["areaName"][0]["value"].as_str().unwrap(),
+        nearest_area["region"][0]["value"].as_str().unwrap(),
+        nearest_area["country"][0]["value"].as_str().unwrap()
     );
 
     let now = Local::now();
