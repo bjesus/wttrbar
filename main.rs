@@ -101,11 +101,19 @@ fn main() {
     };
 
     let weather: Value;
+    let mut iterations = 0;
+    let threshold = 20;
     loop {
         weather = match get(&weather_url) {
             Ok(response) => response,
             Err(_) => {
-                thread::sleep(time::Duration::from_millis(100));
+                iterations += 1;
+                thread::sleep(time::Duration::from_millis(500 * iterations));
+
+                if iterations == threshold {
+                    panic!("No response from endpoint!");
+                }
+
                 continue;
             }
         }.json::<serde_json::Value>()
