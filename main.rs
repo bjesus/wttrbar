@@ -181,7 +181,19 @@ fn main() {
             format_ampm_time(&day, "sunset", ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
-            if i == 0 && hour["time"].as_str().unwrap().parse::<u32>().unwrap() < now.hour() - 2 {
+            let time_from_json = hour["time"].as_str().unwrap().parse::<u32>().unwrap();
+
+            // I need to round this down to closest iteration of report
+            let current_hour = round_down_to_custom_value(now.hour() * 100);
+
+            let compared_hour = if current_hour > 300 {
+                current_hour - 300
+            } else {
+                0
+            };
+
+
+            if i == 0 && time_from_json < compared_hour {
                 continue;
             }
 
@@ -232,6 +244,22 @@ fn format_time(time: &str, ampm: bool) -> String {
     } else {
         format!("{:02}", hour)
     }
+}
+
+fn round_down_to_custom_value(number: u32) -> u32 {
+    let custom_values = [0, 300, 600, 900, 1200, 1500, 1800, 2100];
+
+    let mut rounded_value = custom_values[0]; // Default to the lowest custom value.
+
+    for &value in &custom_values {
+        if number >= value {
+            rounded_value = value;
+        } else {
+            break;
+        }
+    }
+
+    rounded_value
 }
 
 fn format_temp(temp: &str) -> String {
