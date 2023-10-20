@@ -168,7 +168,16 @@ fn main() {
     );
 
     let now = Local::now();
-    for (i, day) in weather["weather"].as_array().unwrap().iter().enumerate() {
+
+    let today = Local::today().naive_local();
+    let mut forecast = weather["weather"].as_array().unwrap().clone();
+    forecast.retain(|item| {
+        let item_date =
+            NaiveDate::parse_from_str(&item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
+        item_date >= today
+    });
+
+    for (i, day) in forecast.iter().enumerate() {
         tooltip += "\n<b>";
         if i == 0 {
             tooltip += "Today, ";
@@ -199,7 +208,10 @@ fn main() {
             format_ampm_time(&day, "sunset", ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
-            if i == 0 && hour["time"].as_str().unwrap().parse::<u32>().unwrap() < now.hour() - 2 {
+            if i == 0
+                && now.hour() >= 2
+                && hour["time"].as_str().unwrap().parse::<u32>().unwrap() < 2 - 2
+            {
                 continue;
             }
 
