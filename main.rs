@@ -1,7 +1,7 @@
 use chrono::prelude::*;
+use core::time;
 use reqwest::blocking::get;
 use serde_json::{json, Value};
-use core::time;
 use std::collections::HashMap;
 use std::{env, thread};
 
@@ -116,8 +116,9 @@ fn main() {
 
                 continue;
             }
-        }.json::<serde_json::Value>()
-         .unwrap();
+        }
+        .json::<serde_json::Value>()
+        .unwrap();
 
         dbg!(&weather);
         break;
