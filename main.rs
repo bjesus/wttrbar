@@ -1,8 +1,9 @@
 use chrono::prelude::*;
 use reqwest::blocking::get;
-use serde_json::json;
+use serde_json::{json, Value};
+use core::time;
 use std::collections::HashMap;
-use std::env;
+use std::{env, thread};
 
 const WEATHER_CODES: &[(i32, &str)] = &[
     (113, "☀️"),
@@ -99,11 +100,28 @@ fn main() {
         format!("https://wttr.in/{}?format=j1", location)
     };
 
-    let weather = get(weather_url)
-        .unwrap()
-        .json::<serde_json::Value>()
-        .unwrap();
-    dbg!(&weather);
+    let weather: Value;
+    let mut iterations = 0;
+    let threshold = 20;
+    loop {
+        weather = match get(&weather_url) {
+            Ok(response) => response,
+            Err(_) => {
+                iterations += 1;
+                thread::sleep(time::Duration::from_millis(500 * iterations));
+
+                if iterations == threshold {
+                    panic!("No response from endpoint!");
+                }
+
+                continue;
+            }
+        }.json::<serde_json::Value>()
+         .unwrap();
+
+        dbg!(&weather);
+        break;
+    }
 
     let current_condition = &weather["current_condition"][0];
     let indicator = current_condition[main_indicator].as_str().unwrap();
