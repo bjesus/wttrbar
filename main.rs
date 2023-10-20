@@ -170,7 +170,7 @@ fn main() {
 
     let now = Local::now();
 
-    let today = Local::today().naive_local();
+    let today = Local::now().date_naive();
     let mut forecast = weather["weather"].as_array().unwrap().clone();
     forecast.retain(|item| {
         let item_date =
