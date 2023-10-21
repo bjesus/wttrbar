@@ -209,9 +209,15 @@ fn main() {
             format_ampm_time(&day, "sunset", ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
+            let hour_time = hour["time"].as_str().unwrap();
+            let formatted_hour_time = if hour_time.len() >= 2 {
+                hour_time[..hour_time.len() - 2].to_string()
+            } else {
+                hour_time.to_string()
+            };
             if i == 0
                 && now.hour() >= 2
-                && hour["time"].as_str().unwrap().parse::<u32>().unwrap() < 2 - 2
+                && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
             {
                 continue;
             }
