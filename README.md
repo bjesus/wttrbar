@@ -29,6 +29,8 @@ For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/ap
 
 e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
 
+- `--vertical-view` - shows the icon on the first line and temperature in a new line
+
 ## Waybar configuration
 
 Assuming `wttrbar` is in your path, it can be used like:
