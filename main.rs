@@ -86,6 +86,8 @@ fn main() {
         None => "",
     };
 
+    let vertical_view = args.iter().any(|arg| arg == "--vertical-view");
+
     let hide_conditions = args.iter().any(|arg| arg == "--hide-conditions");
 
     let ampm = args.iter().any(|arg| arg == "--ampm");
@@ -137,7 +139,11 @@ fn main() {
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let text = format!("{} {}", weather_icon, indicator);
+    let text = if vertical_view {
+        format!("{}\n{}", weather_icon, indicator)
+    } else {
+        format!("{} {}", weather_icon, indicator)
+    };
     data.insert("text", text);
 
     let mut tooltip = format!(
