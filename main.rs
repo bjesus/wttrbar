@@ -1,9 +1,11 @@
-use chrono::prelude::*;
 use core::time;
+use std::collections::HashMap;
+use std::thread;
+
+use chrono::prelude::*;
+use clap::Parser;
 use reqwest::blocking::get;
 use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::{env, thread};
 
 const WEATHER_CODES: &[(i32, &str)] = &[
     (113, "☀️"),
@@ -68,39 +70,58 @@ const WEATHER_CODES: &[(i32, &str)] = &[
     (431, "🌨️"),
 ];
 
+#[derive(Parser, Debug)]
+#[command(author = "Yo'av Moshe",
+version = None,
+about = "A simple but detailed weather indicator for Waybar using wttr.in",
+long_about = None)
+]
+struct Args {
+    #[arg(
+        long,
+        default_value = "temp_C",
+        help = "decide which current_conditions key will be shown on waybar"
+    )]
+    main_indicator: String,
+
+    #[arg(
+        long,
+        default_value = "%Y-%m-%d",
+        help = "formats the date next to the days. see https://docs.rs/chrono/latest/chrono/format/strftime/index.html"
+    )]
+    date_format: String,
+
+    #[arg(long, help = "pass a specific location to wttr.in")]
+    location: Option<String>,
+
+    #[arg(
+        long,
+        help = "shows the icon on the first line and temperature in a new line"
+    )]
+    vertical_view: bool,
+
+    #[arg(
+        long,
+        help = " show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
+    )]
+    hide_conditions: bool,
+
+    #[arg(long, help = "display time in AM/PM format")]
+    ampm: bool,
+
+    #[arg(long, help = "use fahrenheit instead of celsius")]
+    fahrenheit: bool,
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let main_indicator = match args.iter().position(|arg| arg == "--main-indicator") {
-        Some(index) => args.get(index + 1).unwrap(),
-        None => "temp_C",
-    };
-
-    let date_format = match args.iter().position(|arg| arg == "--date-format") {
-        Some(index) => args.get(index + 1).unwrap(),
-        None => "%Y-%m-%d",
-    };
-
-    let location = match args.iter().position(|arg| arg == "--location") {
-        Some(index) => args.get(index + 1).unwrap(),
-        None => "",
-    };
-
-    let vertical_view = args.iter().any(|arg| arg == "--vertical-view");
-
-    let hide_conditions = args.iter().any(|arg| arg == "--hide-conditions");
-
-    let ampm = args.iter().any(|arg| arg == "--ampm");
-
-    let fahrenheit = args.iter().any(|arg| arg == "--fahrenheit");
+    let args = Args::parse();
 
     let mut data = HashMap::new();
 
-    let weather_url = if location.is_empty() {
-        "https://wttr.in/?format=j1".to_string()
-    } else {
-        format!("https://wttr.in/{}?format=j1", location)
-    };
+    let weather_url = format!(
+        "https://wttr.in/{}?format=j1",
+        args.location.unwrap_or(String::new())
+    );
 
     let weather: Value;
     let mut iterations = 0;
@@ -127,8 +148,8 @@ fn main() {
     }
 
     let current_condition = &weather["current_condition"][0];
-    let indicator = current_condition[main_indicator].as_str().unwrap();
-    let feels_like = if fahrenheit {
+    let indicator = current_condition[args.main_indicator].as_str().unwrap();
+    let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
@@ -139,7 +160,7 @@ fn main() {
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let text = if vertical_view {
+    let text = if args.vertical_view {
         format!("{}\n{}", weather_icon, indicator)
     } else {
         format!("{} {}", weather_icon, indicator)
@@ -151,7 +172,7 @@ fn main() {
         current_condition["weatherDesc"][0]["value"]
             .as_str()
             .unwrap(),
-        if fahrenheit {
+        if args.fahrenheit {
             current_condition["temp_F"].as_str().unwrap()
         } else {
             current_condition["temp_C"].as_str().unwrap()
@@ -180,7 +201,7 @@ fn main() {
     let mut forecast = weather["weather"].as_array().unwrap().clone();
     forecast.retain(|item| {
         let item_date =
-            NaiveDate::parse_from_str(&item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
+            NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         item_date >= today
     });
 
@@ -193,9 +214,9 @@ fn main() {
             tooltip += "Tomorrow, ";
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        tooltip += &format!("{}</b>\n", date.format(date_format));
+        tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        if fahrenheit {
+        if args.fahrenheit {
             tooltip += &format!(
                 "⬆️ {}° ⬇️ {}° ",
                 day["maxtempF"].as_str().unwrap(),
@@ -211,8 +232,8 @@ fn main() {
 
         tooltip += &format!(
             "🌅 {} 🌇 {}\n",
-            format_ampm_time(&day, "sunrise", ampm),
-            format_ampm_time(&day, "sunset", ampm),
+            format_ampm_time(day, "sunrise", args.ampm),
+            format_ampm_time(day, "sunset", args.ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
@@ -230,7 +251,7 @@ fn main() {
 
             let mut tooltip_line = format!(
                 "{} {} {} {}",
-                format_time(hour["time"].as_str().unwrap(), ampm),
+                format_time(hour["time"].as_str().unwrap(), args.ampm),
                 WEATHER_CODES
                     .iter()
                     .find(|(code, _)| *code
@@ -241,14 +262,14 @@ fn main() {
                             .unwrap())
                     .map(|(_, symbol)| symbol)
                     .unwrap(),
-                if fahrenheit {
+                if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
                 },
                 hour["weatherDesc"][0]["value"].as_str().unwrap(),
             );
-            if !hide_conditions {
+            if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour)).as_str();
             }
             tooltip_line += "\n";
