@@ -4,7 +4,7 @@ use std::thread;
 
 use chrono::prelude::*;
 use clap::Parser;
-use reqwest::blocking::get;
+use reqwest::blocking::Client;
 use serde_json::{json, Map, Value};
 
 const WEATHER_CODES: &[(i32, &str)] = &[
@@ -132,12 +132,12 @@ fn main() {
         args.location.unwrap_or(String::new())
     );
 
-    let weather: Value;
     let mut iterations = 0;
     let threshold = 20;
-    loop {
-        weather = match get(&weather_url) {
-            Ok(response) => response,
+    let client = Client::new();
+    let weather = loop {
+        match client.get(&weather_url).send() {
+            Ok(response) => break response.json::<Value>().unwrap(),
             Err(_) => {
                 iterations += 1;
                 thread::sleep(time::Duration::from_millis(500 * iterations));
@@ -145,16 +145,9 @@ fn main() {
                 if iterations == threshold {
                     panic!("No response from endpoint!");
                 }
-
-                continue;
             }
         }
-        .json::<serde_json::Value>()
-        .unwrap();
-
-        dbg!(&weather);
-        break;
-    }
+    };
 
     let current_condition = &weather["current_condition"][0];
     let feels_like = if args.fahrenheit {
