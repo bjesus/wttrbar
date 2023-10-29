@@ -5,7 +5,7 @@ use std::thread;
 use chrono::prelude::*;
 use clap::Parser;
 use reqwest::blocking::get;
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 const WEATHER_CODES: &[(i32, &str)] = &[
     (113, "☀️"),
@@ -70,6 +70,8 @@ const WEATHER_CODES: &[(i32, &str)] = &[
     (431, "🌨️"),
 ];
 
+const ICON_PLACEHOLDER: &str = "{ICON}";
+
 #[derive(Parser, Debug)]
 #[command(author = "Yo'av Moshe",
 version = None,
@@ -83,6 +85,13 @@ struct Args {
         help = "decide which current_conditions key will be shown on waybar"
     )]
     main_indicator: String,
+
+    #[arg(
+        long,
+        help = "optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. example:\n\
+        \"{ICON}{temp_C}({FeelsLikeC})\" will be transformed to \"text\":\"🌧️0(-4)\" in output"
+    )]
+    custom_indicator: Option<String>,
 
     #[arg(
         long,
@@ -148,7 +157,6 @@ fn main() {
     }
 
     let current_condition = &weather["current_condition"][0];
-    let indicator = current_condition[args.main_indicator].as_str().unwrap();
     let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
@@ -160,10 +168,21 @@ fn main() {
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let text = if args.vertical_view {
-        format!("{}\n{}", weather_icon, indicator)
-    } else {
-        format!("{} {}", weather_icon, indicator)
+    let text = match args.custom_indicator {
+        None => {
+            let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
+                "temp_F"
+            } else {
+                args.main_indicator.as_str()
+            };
+            let indicator = current_condition[main_indicator_code].as_str().unwrap();
+            if args.vertical_view {
+                format!("{}\n{}", weather_icon, indicator)
+            } else {
+                format!("{} {}", weather_icon, indicator)
+            }
+        }
+        Some(expression) => format_indicator(current_condition, expression, weather_icon),
     };
     data.insert("text", text);
 
@@ -344,4 +363,35 @@ fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
             .format("%H:%M")
             .to_string()
     }
+}
+fn format_indicator(weather_conditions: &Value, expression: String, weather_icon: &&str) -> String {
+    if !weather_conditions.is_object() {
+        return String::new();
+    }
+    let default_map = Map::new();
+    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
+    let mut formatted_indicator = expression.to_string();
+    weather_conditions_map
+        .iter()
+        .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
+        .for_each(|condition| {
+            if formatted_indicator.contains(condition.0.as_str()) {
+                let condition_value = if condition.1.is_array() {
+                    condition.1.as_array().and_then(|vec| {
+                        vec[0]
+                            .as_object()
+                            .and_then(|value_map| value_map["value"].as_str())
+                    })
+                } else {
+                    condition.1.as_str()
+                }
+                .unwrap_or("");
+                formatted_indicator =
+                    formatted_indicator.replace(condition.0.as_str(), condition_value)
+            }
+        });
+    if formatted_indicator.contains(ICON_PLACEHOLDER) {
+        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
+    }
+    formatted_indicator
 }
