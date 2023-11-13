@@ -1,13 +1,15 @@
-use core::time;
 use std::collections::HashMap;
-use std::thread;
+use std::sync::mpsc;
+use std::time::Duration;
 
-use chrono::prelude::*;
+use chrono::{Local, NaiveDate, NaiveTime, Timelike};
 use clap::Parser;
-use reqwest::blocking::Client;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::policies::ExponentialBackoff;
+use reqwest_retry::RetryTransientMiddleware;
 use serde_json::{json, Map, Value};
 
-const WEATHER_CODES: &[(i32, &str)] = &[
+const WEATHER_CODES: &[(u32, &str)] = &[
     (113, "☀️"),
     (116, "🌤️"),
     (119, "☁️"),
@@ -70,33 +72,26 @@ const WEATHER_CODES: &[(i32, &str)] = &[
     (431, "🌨️"),
 ];
 
+const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
+
 const ICON_PLACEHOLDER: &str = "{ICON}";
 
-#[derive(Parser, Debug)]
-#[command(author = "Yo'av Moshe",
-version = None,
-about = "A simple but detailed weather indicator for Waybar using wttr.in",
-long_about = None)
-]
+#[derive(Parser, Debug, Clone)]
+#[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(
         long,
-        default_value = "temp_C",
-        help = "decide which current_conditions key will be shown on waybar"
+        default_value = "{ICON} {temp_C}",
+        help = "Optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. Example:\n\
+        \"{ICON}{temp_C}({FeelsLikeC})\" will be transformed to \"text\":\"🌧️0(-4)\" in output",
+        alias = "custom-indicator"
     )]
-    main_indicator: String,
-
-    #[arg(
-        long,
-        help = "optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. example:\n\
-        \"{ICON}{temp_C}({FeelsLikeC})\" will be transformed to \"text\":\"🌧️0(-4)\" in output"
-    )]
-    custom_indicator: Option<String>,
+    indicator: String,
 
     #[arg(
         long,
         default_value = "%Y-%m-%d",
-        help = "formats the date next to the days. see https://docs.rs/chrono/latest/chrono/format/strftime/index.html"
+        help = "Formats the date next to the days. see https://docs.rs/chrono/latest/chrono/format/strftime/index.html"
     )]
     date_format: String,
 
@@ -105,52 +100,87 @@ struct Args {
 
     #[arg(
         long,
-        help = "shows the icon on the first line and temperature in a new line"
-    )]
-    vertical_view: bool,
-
-    #[arg(
-        long,
-        help = " show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
+        help = "Show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
     )]
     hide_conditions: bool,
 
-    #[arg(long, help = "display time in AM/PM format")]
+    #[arg(long, help = "Display time in AM/PM format")]
     ampm: bool,
 
-    #[arg(long, help = "use fahrenheit instead of celsius")]
-    fahrenheit: bool,
+    #[arg(
+        long,
+        alias = "fahrenheit",
+        help = "Use imperial units instead of metric (Miles per hour, Fahrenheit). Consider changing `--indicator` to \"{ICON} {temp_F}\""
+    )]
+    imperial: bool,
+
+    #[arg(
+        long,
+        default_value = "30",
+        help = "Interval of requests to wttr.in in minutes. Minimum is 30"
+    )]
+    interval: u32,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
-
-    let mut data = HashMap::new();
 
     let weather_url = format!(
         "https://wttr.in/{}?format=j1",
-        args.location.unwrap_or(String::new())
+        args.clone().location.unwrap_or_default()
     );
 
-    let mut iterations = 0;
-    let threshold = 20;
-    let client = Client::new();
-    let weather = loop {
-        match client.get(&weather_url).send() {
-            Ok(response) => break response.json::<Value>().unwrap(),
-            Err(_) => {
-                iterations += 1;
-                thread::sleep(time::Duration::from_millis(500 * iterations));
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build();
+    let (sender, receiver) = mpsc::channel();
 
-                if iterations == threshold {
-                    panic!("No response from endpoint!");
+    tokio::spawn(async move {
+        let interval = if args.interval < 30 {
+            30
+        } else {
+            args.interval
+        };
+
+        loop {
+            match get_wttr_response(&client, &weather_url).await {
+                Ok(response) => {
+                    sender.send(parse_weather(response, args.clone())).unwrap();
                 }
+                Err(_) => eprintln!("Error connecting to wttr.in"),
             }
+            tokio::time::sleep(Duration::from_secs(interval as u64 * 60)).await;
         }
-    };
+    });
 
+    println!("{}", json!(DEFAULT_RESULT));
+    loop {
+        match receiver.recv() {
+            Ok(value) => println!("{}", json!(&value.clone())),
+            Err(_) => println!("{}", json!(DEFAULT_RESULT)),
+        };
+    }
+}
+
+async fn get_wttr_response(
+    client: &ClientWithMiddleware,
+    weather_url: &String,
+) -> Result<Value, reqwest::Error> {
+    client
+        .get(weather_url)
+        .send()
+        .await
+        .map(|response| response.json::<Value>())
+        .unwrap()
+        .await
+}
+
+fn parse_weather<'a>(weather: Value, args: Args) -> HashMap<&'a str, String> {
+    let mut data = HashMap::new();
     let current_condition = &weather["current_condition"][0];
-    let feels_like = if args.fahrenheit {
+    let feels_like = if args.imperial {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
@@ -158,25 +188,10 @@ fn main() {
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
     let weather_icon = WEATHER_CODES
         .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+        .find(|(code, _)| *code == weather_code.parse::<u32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let text = match args.custom_indicator {
-        None => {
-            let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
-                "temp_F"
-            } else {
-                args.main_indicator.as_str()
-            };
-            let indicator = current_condition[main_indicator_code].as_str().unwrap();
-            if args.vertical_view {
-                format!("{}\n{}", weather_icon, indicator)
-            } else {
-                format!("{} {}", weather_icon, indicator)
-            }
-        }
-        Some(expression) => format_indicator(current_condition, expression, weather_icon),
-    };
+    let text = format_indicator(current_condition, &args.indicator, weather_icon);
     data.insert("text", text);
 
     let mut tooltip = format!(
@@ -184,17 +199,24 @@ fn main() {
         current_condition["weatherDesc"][0]["value"]
             .as_str()
             .unwrap(),
-        if args.fahrenheit {
+        if args.imperial {
             current_condition["temp_F"].as_str().unwrap()
         } else {
             current_condition["temp_C"].as_str().unwrap()
         },
     );
     tooltip += &format!("Feels like: {}°\n", feels_like);
-    tooltip += &format!(
-        "Wind: {}Km/h\n",
-        current_condition["windspeedKmph"].as_str().unwrap()
-    );
+    tooltip += &if args.imperial {
+        format!(
+            "Wind: {}Km/h\n",
+            current_condition["windspeedMiles"].as_str().unwrap()
+        )
+    } else {
+        format!(
+            "Wind: {}Mph\n",
+            current_condition["windspeedKmph"].as_str().unwrap()
+        )
+    };
     tooltip += &format!(
         "Humidity: {}%\n",
         current_condition["humidity"].as_str().unwrap()
@@ -228,7 +250,7 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        if args.fahrenheit {
+        if args.imperial {
             tooltip += &format!(
                 "⬆️ {}° ⬇️ {}° ",
                 day["maxtempF"].as_str().unwrap(),
@@ -270,11 +292,11 @@ fn main() {
                         == hour["weatherCode"]
                             .as_str()
                             .unwrap()
-                            .parse::<i32>()
+                            .parse::<u32>()
                             .unwrap())
                     .map(|(_, symbol)| symbol)
                     .unwrap(),
-                if args.fahrenheit {
+                if args.imperial {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
@@ -290,8 +312,7 @@ fn main() {
     }
     data.insert("tooltip", tooltip);
 
-    let json_data = json!(data);
-    println!("{}", json_data);
+    data.clone()
 }
 
 fn format_time(time: &str, ampm: bool) -> String {
@@ -314,7 +335,7 @@ fn format_temp(temp: &str) -> String {
     format!("{: >3}°", temp)
 }
 
-fn format_chances(hour: &serde_json::Value) -> String {
+fn format_chances(hour: &Value) -> String {
     let chances: HashMap<&str, &str> = [
         ("chanceoffog", "Fog"),
         ("chanceoffrost", "Frost"),
@@ -347,7 +368,7 @@ fn format_chances(hour: &serde_json::Value) -> String {
         .join(", ")
 }
 
-fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
+fn format_ampm_time(day: &Value, key: &str, ampm: bool) -> String {
     if ampm {
         day["astronomy"][0][key].as_str().unwrap().to_string()
     } else {
@@ -357,7 +378,12 @@ fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
             .to_string()
     }
 }
-fn format_indicator(weather_conditions: &Value, expression: String, weather_icon: &&str) -> String {
+
+fn format_indicator(
+    weather_conditions: &Value,
+    expression: &String,
+    weather_icon: &&str,
+) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
