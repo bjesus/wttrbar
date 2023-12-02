@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::mpsc;
+use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::{Local, NaiveDate, NaiveTime, Timelike};
@@ -135,49 +135,43 @@ async fn main() {
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
-    let (sender, receiver) = mpsc::channel();
 
-    tokio::spawn(async move {
-        let interval = if args.interval < 30 {
-            30
-        } else {
-            args.interval
-        };
-
-        loop {
-            match get_wttr_response(&client, &weather_url).await {
-                Ok(response) => {
-                    sender.send(parse_weather(response, args.clone())).unwrap();
-                }
-                Err(_) => eprintln!("Error connecting to wttr.in"),
-            }
-            tokio::time::sleep(Duration::from_secs(interval as u64 * 60)).await;
-        }
-    });
+    let interval = if args.interval < 30 {
+        30
+    } else {
+        args.interval
+    };
 
     println!("{}", json!(DEFAULT_RESULT));
     loop {
-        match receiver.recv() {
-            Ok(value) => println!("{}", json!(&value.clone())),
-            Err(_) => println!("{}", json!(DEFAULT_RESULT)),
-        };
+        match get_wttr_response(&client, &weather_url).await {
+            Ok(response) => {
+                let parsed_response = parse_weather(response, Rc::new(args.clone()));
+                println!("{}", json!(&parsed_response));
+            }
+            Err(_) => {
+                eprintln!("Error connecting to wttr.in");
+                println!("{}", json!(DEFAULT_RESULT));
+            }
+        }
+        tokio::time::sleep(Duration::from_secs(interval as u64 * 60)).await;
     }
 }
 
 async fn get_wttr_response(
     client: &ClientWithMiddleware,
     weather_url: &String,
-) -> Result<Value, reqwest::Error> {
-    client
+) -> Result<Value, reqwest_middleware::Error> {
+    let response = client
         .get(weather_url)
         .send()
-        .await
-        .map(|response| response.json::<Value>())
-        .unwrap()
-        .await
+        .await?
+        .json::<Value>()
+        .await?;
+    Ok(response)
 }
 
-fn parse_weather<'a>(weather: Value, args: Args) -> HashMap<&'a str, String> {
+fn parse_weather<'a>(weather: Value, args: Rc<Args>) -> HashMap<&'a str, String> {
     let mut data = HashMap::new();
     let current_condition = &weather["current_condition"][0];
     let feels_like = if args.imperial {
