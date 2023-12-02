@@ -6,6 +6,7 @@ use clap::Parser;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
+use retry_policies::Jitter;
 use serde_json::{json, Map, Value};
 
 const WEATHER_CODES: &[(u32, &str)] = &[
@@ -127,10 +128,14 @@ async fn main() {
 
     let weather_url = format!(
         "https://wttr.in/{}?format=j1",
-        args.location.clone().unwrap_or_default()
+        args.location.as_ref().unwrap_or(&String::default())
     );
 
-    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+    let retry_policy = ExponentialBackoff::builder()
+        .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
+        .jitter(Jitter::Bounded)
+        .base(2)
+        .build_with_max_retries(3);
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
