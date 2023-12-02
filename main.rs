@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::{Local, NaiveDate, NaiveTime, Timelike};
@@ -76,7 +75,7 @@ const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
 
 const ICON_PLACEHOLDER: &str = "{ICON}";
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(
@@ -128,7 +127,7 @@ async fn main() {
 
     let weather_url = format!(
         "https://wttr.in/{}?format=j1",
-        args.clone().location.unwrap_or_default()
+        args.location.clone().unwrap_or_default()
     );
 
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
@@ -146,7 +145,7 @@ async fn main() {
     loop {
         match get_wttr_response(&client, &weather_url).await {
             Ok(response) => {
-                let parsed_response = parse_weather(response, Rc::new(args.clone()));
+                let parsed_response = parse_weather(response, &args);
                 println!("{}", json!(&parsed_response));
             }
             Err(_) => {
@@ -171,7 +170,7 @@ async fn get_wttr_response(
     Ok(response)
 }
 
-fn parse_weather<'a>(weather: Value, args: Rc<Args>) -> HashMap<&'a str, String> {
+fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
     let mut data = HashMap::new();
     let current_condition = &weather["current_condition"][0];
     let feels_like = if args.imperial {
@@ -306,7 +305,7 @@ fn parse_weather<'a>(weather: Value, args: Rc<Args>) -> HashMap<&'a str, String>
     }
     data.insert("tooltip", tooltip);
 
-    data.clone()
+    data
 }
 
 fn format_time(time: &str, ampm: bool) -> String {
