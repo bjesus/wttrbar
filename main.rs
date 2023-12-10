@@ -208,13 +208,13 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
     tooltip += &format!("Feels like: {}°\n", feels_like);
     tooltip += &if args.imperial {
         format!(
-            "Wind: {}Km/h\n",
-            current_condition["windspeedKmph"].as_str().unwrap()
+            "Wind: {}Mph/h\n",
+            current_condition["windspeedMiles"].as_str().unwrap()
         )
     } else {
         format!(
-            "Wind: {}Mph\n",
-            current_condition["windspeedMiles"].as_str().unwrap()
+            "Wind: {}Km/h\n",
+            current_condition["windspeedKmps"].as_str().unwrap()
         )
     };
     tooltip += &format!(
