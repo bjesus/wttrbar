@@ -146,12 +146,14 @@ async fn main() {
         args.interval
     };
 
-    println!("{}", json!(DEFAULT_RESULT));
+    // println!("{}", json!(DEFAULT_RESULT));
     loop {
         match get_wttr_response(&client, &weather_url).await {
             Ok(response) => {
                 let parsed_response = parse_weather(response, &args);
-                println!("{}", json!(&parsed_response));
+                if json!(&parsed_response) != json!(DEFAULT_RESULT) {
+                    println!("{}", json!(&parsed_response));
+                }
             }
             Err(_) => {
                 eprintln!("Error connecting to wttr.in");
