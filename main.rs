@@ -9,67 +9,67 @@ use reqwest_retry::RetryTransientMiddleware;
 use retry_policies::Jitter;
 use serde_json::{json, Map, Value};
 
-const WEATHER_CODES: &[(u32, &str)] = &[
-    (113, "☀️"),
-    (116, "🌤️"),
-    (119, "☁️"),
-    (122, "🌥️"),
-    (143, "🌫️"),
-    (176, "🌦️"),
-    (179, "🌧️"),
-    (182, "🌨️"),
-    (185, "🌨️"),
-    (200, "🌩️"),
-    (227, "❄️"),
-    (230, "❄️"),
-    (248, "🌫️"),
-    (260, "🌫️"),
-    (263, "🌧️"),
-    (266, "🌧️"),
-    (281, "🌦️"),
-    (284, "🌦️"),
-    (293, "🌧️"),
-    (296, "🌧️"),
-    (299, "🌧️"),
-    (302, "🌧️"),
-    (305, "🌧️"),
-    (308, "🌧️"),
-    (311, "🌧️"),
-    (314, "🌧️"),
-    (317, "🌧️"),
-    (320, "🌨️"),
-    (323, "🌨️"),
-    (326, "🌨️"),
-    (329, "🌨️"),
-    (332, "🌨️"),
-    (335, "🌨️"),
-    (338, "🌨️"),
-    (350, "🌨️"),
-    (353, "🌧️"),
-    (356, "🌧️"),
-    (359, "🌧️"),
-    (362, "🌨️"),
-    (365, "🌨️"),
-    (368, "🌨️"),
-    (371, "🌨️"),
-    (374, "🌨️"),
-    (377, "🌨️"),
-    (386, "🌩️"),
-    (389, "🌨️"),
-    (392, "🌨️"),
-    (395, "🌨️"),
-    (398, "🌨️"),
-    (401, "🌨️"),
-    (404, "🌨️"),
-    (407, "🌨️"),
-    (410, "🌨️"),
-    (413, "🌨️"),
-    (416, "🌨️"),
-    (419, "🌨️"),
-    (422, "🌨️"),
-    (425, "🌨️"),
-    (428, "🌨️"),
-    (431, "🌨️"),
+const WEATHER_CODES: &[(u32, &str, &str)] = &[
+    (113, "\u{e30e}", "\u{e304}"), // nf-mdi-weather_sunny
+    (116, "\u{e302}", "\u{e30c}"), // nf-mdi-weather_partlycloudy
+    (119, "\u{e312}", "\u{e312}"), // nf-mdi-weather_cloudy
+    (122, "\u{e311}", "\u{e311}"), // nf-mdi-weather_cloudy
+    (143, "\u{e30f}", "\u{e30f}"), // nf-mdi-weather_fog
+    (176, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (179, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (182, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (185, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (200, "\u{e329}", "\u{e329}"), // nf-mdi-weather_lightning
+    (227, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (230, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (248, "\u{e30f}", "\u{e30f}"), // nf-mdi-weather_fog
+    (260, "\u{e30f}", "\u{e30f}"), // nf-mdi-weather_fog
+    (263, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (266, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (281, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (284, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (293, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (296, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (299, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (302, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (305, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (308, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (311, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (314, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (317, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (320, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (323, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (326, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (329, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (332, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (335, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (338, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (350, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (353, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (356, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (359, "\u{e326}", "\u{e320}"), // nf-mdi-weather_rainy
+    (362, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (365, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (368, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (371, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (374, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (377, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (386, "\u{e329}", "\u{e329}"), // nf-mdi-weather_lightning
+    (389, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (392, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (395, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (398, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (401, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (404, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (407, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (410, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (413, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (416, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (419, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (422, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (425, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (428, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
+    (431, "\u{e328}", "\u{e320}"), // nf-mdi-weather_snowy
 ];
 
 const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
@@ -178,20 +178,20 @@ async fn get_wttr_response(
 }
 
 fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
-    let mut data = HashMap::new();
-    let current_condition = &weather["current_condition"][0];
-    let feels_like = if args.imperial {
+    let mut data: HashMap<&str, String> = HashMap::new();
+    let current_condition: &Value = &weather["current_condition"][0];
+    let feels_like: &str = if args.imperial {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
-    let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES
+    let weather_code: &str = current_condition["weatherCode"].as_str().unwrap();
+    let weather_icon: &&str = WEATHER_CODES
         .iter()
-        .find(|(code, _)| *code == weather_code.parse::<u32>().unwrap())
-        .map(|(_, symbol)| symbol)
+        .find(|(code, _, _)| *code == weather_code.parse::<u32>().unwrap())
+        .map(|(_, symbol, _)| symbol)
         .unwrap();
-    let text = format_indicator(current_condition, &args.indicator, weather_icon);
+    let text: String = format_indicator(current_condition, &args.indicator, weather_icon);
     data.insert("text", text);
 
     let mut tooltip = format!(
@@ -288,13 +288,13 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 WEATHER_CODES
                     .iter()
-                    .find(|(code, _)| *code
+                    .find(|(code, _, _)| *code
                         == hour["weatherCode"]
                             .as_str()
                             .unwrap()
                             .parse::<u32>()
                             .unwrap())
-                    .map(|(_, symbol)| symbol)
+                    .map(|(_, symbol, _)| symbol)
                     .unwrap(),
                 if args.imperial {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
