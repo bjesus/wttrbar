@@ -179,6 +179,10 @@ async fn get_wttr_response(
 
 fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
     let mut data: HashMap<&str, String> = HashMap::new();
+
+    let now_hour = Local::now().time().hour();
+    let is_daytime = now_hour >= 6 && now_hour < 18;
+
     let current_condition: &Value = &weather["current_condition"][0];
     let feels_like: &str = if args.imperial {
         current_condition["FeelsLikeF"].as_str().unwrap()
@@ -229,7 +233,7 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         nearest_area["country"][0]["value"].as_str().unwrap()
     );
 
-    let now = Local::now();
+    let _now = Local::now();
 
     let today = Local::now().date_naive();
     let mut forecast = weather["weather"].as_array().unwrap().clone();
@@ -270,37 +274,49 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
             format_ampm_time(day, "sunset", args.ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
-            let hour_time = hour["time"].as_str().unwrap();
-            let formatted_hour_time = if hour_time.len() >= 2 {
-                hour_time[..hour_time.len() - 2].to_string()
+            let formatted_hour_time = if hour["time"].as_str().unwrap().len() >= 2 {
+                &hour["time"].as_str().unwrap()[..hour["time"].as_str().unwrap().len() - 2]
             } else {
-                hour_time.to_string()
+                hour["time"].as_str().unwrap()
             };
-            if i == 0
-                && now.hour() >= 2
-                && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
-            {
-                continue;
-            }
+            let weather_code_daytime = if is_daytime {
+                WEATHER_CODES
+                    .iter()
+                    .find(|(code, _, _)| {
+                        *code
+                            == hour["weatherCode"]
+                                .as_str()
+                                .unwrap()
+                                .parse::<u32>()
+                                .unwrap()
+                    })
+                    .map(|(_, daytime_icon, _)| daytime_icon)
+                    .unwrap_or(&"\u{e30e}") // Default to daytime icon
+            } else {
+                // Use the nighttime icon
+                WEATHER_CODES
+                    .iter()
+                    .find(|(code, _, _)| {
+                        *code
+                            == hour["weatherCode"]
+                                .as_str()
+                                .unwrap()
+                                .parse::<u32>()
+                                .unwrap()
+                    })
+                    .map(|(_, _, nighttime_icon)| nighttime_icon)
+                    .unwrap_or(&"\u{e304}") // Default to nighttime icon
+            };
 
             let mut tooltip_line = format!(
                 "{} {} {} {}",
-                format_time(hour["time"].as_str().unwrap(), args.ampm),
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _, _)| *code
-                        == hour["weatherCode"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<u32>()
-                            .unwrap())
-                    .map(|(_, symbol, _)| symbol)
-                    .unwrap(),
-                if args.imperial {
-                    format_temp(hour["FeelsLikeF"].as_str().unwrap())
+                format_time(formatted_hour_time, args.ampm), // Replace hour["time"].as_str().unwrap() with formatted_hour_time
+                weather_code_daytime,
+                format_temp(if args.imperial {
+                    hour["FeelsLikeF"].as_str().unwrap()
                 } else {
-                    format_temp(hour["FeelsLikeC"].as_str().unwrap())
-                },
+                    hour["FeelsLikeC"].as_str().unwrap()
+                }),
                 hour["weatherDesc"][0]["value"].as_str().unwrap(),
             );
             if !args.hide_conditions {
@@ -310,22 +326,23 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
             tooltip += &tooltip_line;
         }
     }
+
     data.insert("tooltip", tooltip);
 
     data
 }
 
 fn format_time(time: &str, ampm: bool) -> String {
-    let hour = time.replace("00", "").parse::<i32>().unwrap();
+    let hour: i32 = time.replace("00", "").parse::<i32>().unwrap();
 
     if ampm {
-        let am_or_pm = if hour >= 12 { "pm" } else { "am" };
-        let hour12 = if hour == 0 || hour == 12 {
+        let am_or_pm: &str = if hour >= 12 { "pm" } else { "am" };
+        let hour12: i32 = if hour == 0 || hour == 12 {
             12
         } else {
             hour % 12
         };
-        format!("{: <4}", format!("{}{}", hour12, am_or_pm))
+        format!("{: <4}{}", hour12, am_or_pm)
     } else {
         format!("{:02}", hour)
     }
