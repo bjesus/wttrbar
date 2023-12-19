@@ -252,20 +252,20 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
 
         if args.imperial {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "󰁝 {}° 󰁅 {}° ",
                 day["maxtempF"].as_str().unwrap(),
                 day["mintempF"].as_str().unwrap(),
             );
         } else {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "󰁝 {}° 󰁅 {}° ",
                 day["maxtempC"].as_str().unwrap(),
                 day["mintempC"].as_str().unwrap(),
             );
         };
 
         tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
+            " {}  {}\n",
             format_ampm_time(day, "sunrise", args.ampm),
             format_ampm_time(day, "sunset", args.ampm),
         );
