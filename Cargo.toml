@@ -1,8 +1,8 @@
 [package]
 name = "wttrbar"
-authors = ["Yo'av Moshe"]
+authors = ["Diana Ward"]
 description = "A simple but detailed weather indicator for Waybar using wttr.in"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 readme = "README.md"
 exclude = ["target", "Cargo.lock"]

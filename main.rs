@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::{Local, NaiveDate, NaiveTime, Timelike};
@@ -124,21 +125,24 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
+    let args = Arc::new(Args::parse());
 
-    let weather_url = format!(
+    // Create the client outside the loop
+    let client = Arc::new({
+        let retry_policy = ExponentialBackoff::builder()
+            .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
+            .jitter(Jitter::Bounded)
+            .base(2)
+            .build_with_max_retries(3);
+        ClientBuilder::new(reqwest::Client::new())
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build()
+    });
+
+    let weather_url = Arc::new(format!(
         "https://wttr.in/{}?format=j1",
         args.location.as_ref().unwrap_or(&String::default())
-    );
-
-    let retry_policy = ExponentialBackoff::builder()
-        .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
-        .jitter(Jitter::Bounded)
-        .base(2)
-        .build_with_max_retries(3);
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-        .build();
+    ));
 
     let interval = if args.interval < 30 {
         30
@@ -146,20 +150,26 @@ async fn main() {
         args.interval
     };
 
-    // println!("{}", json!(DEFAULT_RESULT));
     loop {
-        match get_wttr_response(&client, &weather_url).await {
-            Ok(response) => {
-                let parsed_response = parse_weather(response, &args);
-                if json!(&parsed_response) != json!(DEFAULT_RESULT) {
-                    println!("{}", json!(&parsed_response));
+        let client_clone = Arc::clone(&client);
+        let args_clone = Arc::clone(&args);
+        let weather_url_clone = Arc::clone(&weather_url);
+
+        tokio::spawn(async move {
+            match get_wttr_response(&client_clone, &weather_url_clone).await {
+                Ok(response) => {
+                    let parsed_response = parse_weather(response, &args_clone);
+                    if json!(&parsed_response) != json!(DEFAULT_RESULT) {
+                        println!("{}", json!(&parsed_response));
+                    }
+                }
+                Err(_) => {
+                    eprintln!("Error connecting to wttr.in");
+                    println!("{}", json!(DEFAULT_RESULT));
                 }
             }
-            Err(_) => {
-                eprintln!("Error connecting to wttr.in");
-                println!("{}", json!(DEFAULT_RESULT));
-            }
-        }
+        });
+
         tokio::time::sleep(Duration::from_secs(interval as u64 * 60)).await;
     }
 }
@@ -194,12 +204,13 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         .iter()
         .find(|(code, _, _)| *code == weather_code.parse::<u32>().unwrap())
         .map(|(_, symbol, _)| symbol)
-        .unwrap();
+        .unwrap_or(&"\u{e30e}"); // Default to a daytime icon
+
     let text: String = format_indicator(current_condition, &args.indicator, weather_icon);
     data.insert("text", text);
 
     let mut tooltip = format!(
-        "<b>{}</b> {}°\n",
+        "<b>{}</b> {}°\nFeels like: {}°\n",
         current_condition["weatherDesc"][0]["value"]
             .as_str()
             .unwrap(),
@@ -208,8 +219,9 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         } else {
             current_condition["temp_C"].as_str().unwrap()
         },
+        feels_like
     );
-    tooltip += &format!("Feels like: {}°\n", feels_like);
+
     tooltip += &if args.imperial {
         format!(
             "Wind: {}Mph\n",
@@ -225,6 +237,7 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         "Humidity: {}%\n",
         current_condition["humidity"].as_str().unwrap()
     );
+
     let nearest_area = &weather["nearest_area"][0];
     tooltip += &format!(
         "Location: {}, {}, {}\n",
@@ -233,98 +246,109 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         nearest_area["country"][0]["value"].as_str().unwrap()
     );
 
-    let _now = Local::now();
+    let now = Local::now();
+    let today = now.date_naive();
+    let forecast = weather["weather"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| {
+            let item_date =
+                NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
+            item_date >= today
+        })
+        .take(3); // Adjust the number of days to display
 
-    let today = Local::now().date_naive();
-    let mut forecast = weather["weather"].as_array().unwrap().clone();
-    forecast.retain(|item| {
-        let item_date =
-            NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        item_date >= today
-    });
-
-    for (i, day) in forecast.iter().enumerate() {
-        tooltip += "\n<b>";
-        if i == 0 {
-            tooltip += "Today, ";
-        }
-        if i == 1 {
-            tooltip += "Tomorrow, ";
-        }
-        let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
-
-        if args.imperial {
-            tooltip += &format!(
-                "󰁝 {}° 󰁅 {}° ",
-                day["maxtempF"].as_str().unwrap(),
-                day["mintempF"].as_str().unwrap(),
-            );
-        } else {
-            tooltip += &format!(
-                "󰁝 {}° 󰁅 {}° ",
-                day["maxtempC"].as_str().unwrap(),
-                day["mintempC"].as_str().unwrap(),
-            );
-        };
+    for (i, day) in forecast.enumerate() {
+        tooltip += &format!(
+            "\n<b>{}{}</b> {}\n",
+            if i == 0 {
+                "Today, "
+            } else if i == 1 {
+                "Tomorrow, "
+            } else {
+                ""
+            },
+            NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d")
+                .unwrap()
+                .format(args.date_format.as_str()),
+            if args.imperial {
+                format!(
+                    "󰁝 {}° 󰁅 {}° ",
+                    day["maxtempF"].as_str().unwrap(),
+                    day["mintempF"].as_str().unwrap(),
+                )
+            } else {
+                format!(
+                    "󰁝 {}° 󰁅 {}° ",
+                    day["maxtempC"].as_str().unwrap(),
+                    day["mintempC"].as_str().unwrap(),
+                )
+            }
+        );
 
         tooltip += &format!(
             " {}  {}\n",
             format_ampm_time(day, "sunrise", args.ampm),
             format_ampm_time(day, "sunset", args.ampm),
         );
-        for hour in day["hourly"].as_array().unwrap() {
-            let formatted_hour_time = if hour["time"].as_str().unwrap().len() >= 2 {
-                &hour["time"].as_str().unwrap()[..hour["time"].as_str().unwrap().len() - 2]
-            } else {
-                hour["time"].as_str().unwrap()
-            };
-            let weather_code_daytime = if is_daytime {
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _, _)| {
-                        *code
-                            == hour["weatherCode"]
-                                .as_str()
-                                .unwrap()
-                                .parse::<u32>()
-                                .unwrap()
-                    })
-                    .map(|(_, daytime_icon, _)| daytime_icon)
-                    .unwrap_or(&"\u{e30e}") // Default to daytime icon
-            } else {
-                // Use the nighttime icon
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _, _)| {
-                        *code
-                            == hour["weatherCode"]
-                                .as_str()
-                                .unwrap()
-                                .parse::<u32>()
-                                .unwrap()
-                    })
-                    .map(|(_, _, nighttime_icon)| nighttime_icon)
-                    .unwrap_or(&"\u{e304}") // Default to nighttime icon
-            };
 
-            let mut tooltip_line = format!(
-                "{} {} {} {}",
-                format_time(formatted_hour_time, args.ampm), // Replace hour["time"].as_str().unwrap() with formatted_hour_time
-                weather_code_daytime,
-                format_temp(if args.imperial {
-                    hour["FeelsLikeF"].as_str().unwrap()
+        tooltip += &day["hourly"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|hour| {
+                let formatted_hour_time = if hour["time"].as_str().unwrap().len() >= 2 {
+                    &hour["time"].as_str().unwrap()[..hour["time"].as_str().unwrap().len() - 2]
                 } else {
-                    hour["FeelsLikeC"].as_str().unwrap()
-                }),
-                hour["weatherDesc"][0]["value"].as_str().unwrap(),
-            );
-            if !args.hide_conditions {
-                tooltip_line += format!(", {}", format_chances(hour)).as_str();
-            }
-            tooltip_line += "\n";
-            tooltip += &tooltip_line;
-        }
+                    hour["time"].as_str().unwrap()
+                };
+                let weather_code_daytime = if is_daytime {
+                    WEATHER_CODES
+                        .iter()
+                        .find(|(code, _, _)| {
+                            *code
+                                == hour["weatherCode"]
+                                    .as_str()
+                                    .unwrap()
+                                    .parse::<u32>()
+                                    .unwrap()
+                        })
+                        .map(|(_, daytime_icon, _)| daytime_icon)
+                        .unwrap_or(&"\u{e30e}")
+                } else {
+                    WEATHER_CODES
+                        .iter()
+                        .find(|(code, _, _)| {
+                            *code
+                                == hour["weatherCode"]
+                                    .as_str()
+                                    .unwrap()
+                                    .parse::<u32>()
+                                    .unwrap()
+                        })
+                        .map(|(_, _, nighttime_icon)| nighttime_icon)
+                        .unwrap_or(&"\u{e304}")
+                };
+
+                format!(
+                    "{} {} {} {}{}\n",
+                    format_time(formatted_hour_time, args.ampm),
+                    weather_code_daytime,
+                    format_temp(if args.imperial {
+                        hour["FeelsLikeF"].as_str().unwrap()
+                    } else {
+                        hour["FeelsLikeC"].as_str().unwrap()
+                    }),
+                    hour["weatherDesc"][0]["value"].as_str().unwrap(),
+                    if !args.hide_conditions {
+                        format!(", {}", format_chances(hour))
+                    } else {
+                        String::new()
+                    }
+                )
+            })
+            .collect::<String>();
     }
 
     data.insert("tooltip", tooltip);
