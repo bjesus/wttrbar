@@ -21,17 +21,19 @@ For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/ap
 ## Usage
 
 - `--ampm` - display time in AM/PM format
-- `--location` - pass a specific location to wttr.in
+- `--location STRING` - pass a specific location to wttr.in
 - `--main-indicator` - decide which [`current_conditions` key](https://wttr.in/?format=j1) will be shown on waybar. defaults to `temp_C`
 - `--date-format` - defaults to `%Y-%m-%d`, formats the date next to the days. see [reference](https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
 - `--hide-conditions` - show a shorter descrpition next to each hour, like `7° Mist` instead of `7° Mist, Overcast 81%, Sunshine 17%, Frost 15%`
 - `--fahrenheit` - use fahrenheit instead of celsius
 - `--vertical-view` - shows the icon on the first line and temperature in a new line
--  `--custom-indicator` "<CUSTOM_INDICATOR>" - optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used.\
-e.g. `"{ICON}{temp_C}({FeelsLikeC})"` will be transformed to "text":"🌧️0(-4)" in output
+- `--custom-indicator STRING` - optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. For example, `"{ICON}{temp_C}({FeelsLikeC})"` will be transformed to `"text":"🌧️0(-4)"` in the output
 
 e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
 
+### Icons
+
+To display the weather icons correctly, you will need to have a font that supports emojis installed. The screenshot uses [Noto Emoji](https://github.com/googlefonts/noto-emoji), but you can use [other fonts](https://wiki.archlinux.org/title/fonts#Emoji_and_symbols) too.
 
 ## Waybar configuration
 
