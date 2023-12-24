@@ -32,6 +32,7 @@ Waybar spawns wttrbar process, which then stays running. Every 30 minutes (defau
 - `--ampm`                       display time in AM/PM format
 - `--imperial`                   use imperial units instead of metric (Miles per hour, Fahrenheit). Consider changing `--indicator` to "{ICON} {temp_F}"
 - `--interval <INTERVAL>`        interval of requests to *wttr.in* in minutes. Minimum is 30 **[default: 30]**
+- `--nerd-font` Switch icons to use nerd font
 - `-h`, `--help`                 Print help
 - `-V`, `--version`              Print version
 

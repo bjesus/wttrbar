@@ -9,7 +9,7 @@ use reqwest_retry::RetryTransientMiddleware;
 use retry_policies::Jitter;
 use serde_json::{json, Map, Value};
 
-const WEATHER_CODES: &[(u32, &str)] = &[
+const WEATHER_CODES_DEFAULT: &[(u32, &str)] = &[
     (113, "☀️"),
     (116, "🌤️"),
     (119, "☁️"),
@@ -72,6 +72,69 @@ const WEATHER_CODES: &[(u32, &str)] = &[
     (431, "🌨️"),
 ];
 
+const WEATHER_CODES_NERD_FONT: &[(u32, &str)] = &[
+    (113, "\u{e30e}"),
+    (116, "\u{e302}"),
+    (119, "\u{e312}"),
+    (122, "\u{e311}"),
+    (143, "\u{e30f}"),
+    (176, "\u{e326}"),
+    (179, "\u{e328}"),
+    (182, "\u{e328}"),
+    (185, "\u{e328}"),
+    (200, "\u{e329}"),
+    (227, "\u{e328}"),
+    (230, "\u{e328}"),
+    (248, "\u{e30f}"),
+    (260, "\u{e30f}"),
+    (263, "\u{e326}"),
+    (266, "\u{e326}"),
+    (281, "\u{e326}"),
+    (284, "\u{e326}"),
+    (293, "\u{e326}"),
+    (296, "\u{e326}"),
+    (299, "\u{e326}"),
+    (302, "\u{e326}"),
+    (305, "\u{e326}"),
+    (308, "\u{e326}"),
+    (311, "\u{e326}"),
+    (314, "\u{e326}"),
+    (317, "\u{e326}"),
+    (320, "\u{e328}"),
+    (323, "\u{e328}"),
+    (326, "\u{e328}"),
+    (329, "\u{e328}"),
+    (332, "\u{e328}"),
+    (335, "\u{e328}"),
+    (338, "\u{e328}"),
+    (350, "\u{e328}"),
+    (353, "\u{e326}"),
+    (356, "\u{e326}"),
+    (359, "\u{e326}"),
+    (362, "\u{e328}"),
+    (365, "\u{e328}"),
+    (368, "\u{e328}"),
+    (371, "\u{e328}"),
+    (374, "\u{e328}"),
+    (377, "\u{e328}"),
+    (386, "\u{e329}"),
+    (389, "\u{e328}"),
+    (392, "\u{e328}"),
+    (395, "\u{e328}"),
+    (398, "\u{e328}"),
+    (401, "\u{e328}"),
+    (404, "\u{e328}"),
+    (407, "\u{e328}"),
+    (410, "\u{e328}"),
+    (413, "\u{e328}"),
+    (416, "\u{e328}"),
+    (419, "\u{e328}"),
+    (422, "\u{e328}"),
+    (425, "\u{e328}"),
+    (428, "\u{e328}"),
+    (431, "\u{e328}"),
+];
+
 const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
 
 const ICON_PLACEHOLDER: &str = "{ICON}";
@@ -87,6 +150,9 @@ struct Args {
         alias = "custom-indicator"
     )]
     indicator: String,
+
+    #[arg(long, help = "Use Nerd Font icons")]
+    nerd_font: bool,
 
     #[arg(
         long,
@@ -125,6 +191,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
+    let mut weather_icon = "";
 
     let weather_url = format!(
         "https://wttr.in/{}?format=j1",
@@ -146,11 +213,10 @@ async fn main() {
         args.interval
     };
 
-    println!("{}", json!(DEFAULT_RESULT));
     loop {
         match get_wttr_response(&client, &weather_url).await {
             Ok(response) => {
-                let parsed_response = parse_weather(response, &args);
+                let parsed_response = parse_weather(response, &args, &mut weather_icon);
                 println!("{}", json!(&parsed_response));
             }
             Err(_) => {
@@ -175,7 +241,11 @@ async fn get_wttr_response(
     Ok(response)
 }
 
-fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
+fn parse_weather<'a>(
+    weather: Value,
+    args: &Args,
+    weather_icon: &mut &'a str,
+) -> HashMap<&'a str, String> {
     let mut data = HashMap::new();
     let current_condition = &weather["current_condition"][0];
     let feels_like = if args.imperial {
@@ -184,12 +254,12 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<u32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
-    let text = format_indicator(current_condition, &args.indicator, weather_icon);
+    let text = format_indicator(
+        current_condition,
+        &args.indicator,
+        weather_icon,
+        args.nerd_font,
+    );
     data.insert("text", text);
 
     let mut tooltip = format!(
@@ -206,12 +276,12 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
     tooltip += &format!("Feels like: {}°\n", feels_like);
     tooltip += &if args.imperial {
         format!(
-            "Wind: {}Km/h\n",
+            "Wind: {} Mph/h\n",
             current_condition["windspeedMiles"].as_str().unwrap()
         )
     } else {
         format!(
-            "Wind: {}Mph\n",
+            "Wind: {} Kmph\n",
             current_condition["windspeedKmph"].as_str().unwrap()
         )
     };
@@ -250,23 +320,33 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
 
         if args.imperial {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "{} {}° {} {}° ",
+                if args.nerd_font { "\u{e328}" } else { "⬆️" },
                 day["maxtempF"].as_str().unwrap(),
+                if args.nerd_font { "\u{e328}" } else { "⬇️" },
                 day["mintempF"].as_str().unwrap(),
             );
         } else {
+            let up_arrow_icon = if args.nerd_font { "\u{e328}" } else { "⬆️" };
+            let down_arrow_icon = if args.nerd_font { "\u{e328}" } else { "⬇️" };
+
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "{} {}° {} {}° ",
+                up_arrow_icon,
                 day["maxtempC"].as_str().unwrap(),
+                down_arrow_icon,
                 day["mintempC"].as_str().unwrap(),
             );
-        };
+        }
 
         tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
-            format_ampm_time(day, "sunrise", args.ampm),
-            format_ampm_time(day, "sunset", args.ampm),
+            "{} {}\n{} {}\n",
+            if args.nerd_font { "" } else { "🌅" },
+            format_ampm_time(day, "sunrise", args.ampm, args.nerd_font),
+            if args.nerd_font { "" } else { "🌇" },
+            format_ampm_time(day, "sunset", args.ampm, args.nerd_font)
         );
+        let mut weather_icon = "";
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
@@ -274,6 +354,7 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
             } else {
                 hour_time.to_string()
             };
+
             if i == 0
                 && now.hour() >= 2
                 && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
@@ -281,19 +362,35 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
                 continue;
             }
 
-            let mut tooltip_line = format!(
-                "{} {} {} {}",
-                format_time(hour["time"].as_str().unwrap(), args.ampm),
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _)| *code
+            let weather_icons = if args.nerd_font {
+                &WEATHER_CODES_NERD_FONT
+            } else {
+                &WEATHER_CODES_DEFAULT
+            };
+
+            if let Some(icon) = weather_icons
+                .iter()
+                .find(|(code, _)| {
+                    *code
                         == hour["weatherCode"]
                             .as_str()
                             .unwrap()
                             .parse::<u32>()
-                            .unwrap())
-                    .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                            .unwrap()
+                })
+                .map(|(_, symbol)| symbol)
+            {
+                weather_icon = icon;
+            } else {
+                // Handle the case where the icon is not found.
+                // You might want to set a default icon or take appropriate action.
+                eprintln!("Weather icon not found for code: {}", hour["weatherCode"]);
+            }
+
+            let mut tooltip_line = format!(
+                "{} {} {} {}",
+                format_time(hour["time"].as_str().unwrap(), args.ampm),
+                weather_icon,
                 if args.imperial {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
@@ -301,9 +398,11 @@ fn parse_weather<'a>(weather: Value, args: &Args) -> HashMap<&'a str, String> {
                 },
                 hour["weatherDesc"][0]["value"].as_str().unwrap(),
             );
+
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour)).as_str();
             }
+
             tooltip_line += "\n";
             tooltip += &tooltip_line;
         }
@@ -366,11 +465,23 @@ fn format_chances(hour: &Value) -> String {
         .join(", ")
 }
 
-fn format_ampm_time(day: &Value, key: &str, ampm: bool) -> String {
+fn format_ampm_time(day: &Value, key: &str, ampm: bool, nerd_font: bool) -> String {
+    let time = day["astronomy"][0][key].as_str().unwrap();
+
+    let sunrise_icon = if nerd_font { "" } else { "🌅" };
+    let sunset_icon = if nerd_font { "" } else { "🌇" };
+    let up_arrow_icon = if nerd_font { "\u{e30e}" } else { "⬆️" };
+    let down_arrow_icon = if nerd_font { "\u{e302}" } else { "⬇️" };
+
     if ampm {
-        day["astronomy"][0][key].as_str().unwrap().to_string()
+        let arrow_icon = if key == "sunrise" {
+            up_arrow_icon
+        } else {
+            down_arrow_icon
+        };
+        format!("{} {}", arrow_icon, format_time(time, ampm))
     } else {
-        NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
+        NaiveTime::parse_from_str(time, "%I:%M %p")
             .unwrap()
             .format("%H:%M")
             .to_string()
@@ -381,6 +492,7 @@ fn format_indicator(
     weather_conditions: &Value,
     expression: &String,
     weather_icon: &&str,
+    use_nerd_font: bool,
 ) -> String {
     if !weather_conditions.is_object() {
         return String::new();
@@ -388,27 +500,30 @@ fn format_indicator(
     let default_map = Map::new();
     let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
     let mut formatted_indicator = expression.to_string();
-    weather_conditions_map
-        .iter()
-        .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
-        .for_each(|condition| {
-            if formatted_indicator.contains(condition.0.as_str()) {
-                let condition_value = if condition.1.is_array() {
-                    condition.1.as_array().and_then(|vec| {
-                        vec[0]
-                            .as_object()
-                            .and_then(|value_map| value_map["value"].as_str())
-                    })
-                } else {
-                    condition.1.as_str()
-                }
-                .unwrap_or("");
-                formatted_indicator =
-                    formatted_indicator.replace(condition.0.as_str(), condition_value)
+    weather_conditions_map.iter().for_each(|condition| {
+        let placeholder = "{".to_owned() + condition.0 + "}";
+        if formatted_indicator.contains(placeholder.as_str()) {
+            let condition_value = if condition.1.is_array() {
+                condition.1.as_array().and_then(|vec| {
+                    vec[0]
+                        .as_object()
+                        .and_then(|value_map| value_map["value"].as_str())
+                })
+            } else {
+                condition.1.as_str()
             }
-        });
-    if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
-    }
+            .unwrap_or("");
+            formatted_indicator = formatted_indicator.replace(placeholder.as_str(), condition_value)
+        }
+    });
+
+    // Replace ICON_PLACEHOLDER with the appropriate weather icon based on the flag
+    let icon_placeholder = if use_nerd_font {
+        "\u{e30e}" // Nerd Font icon for weather
+    } else {
+        "⛅" // Default non-Nerd Font icon for weather
+    };
+
+    formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, icon_placeholder);
     formatted_indicator
 }
