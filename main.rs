@@ -137,7 +137,7 @@ const WEATHER_CODES_NERD_FONT: &[(u32, &str)] = &[
 
 const DEFAULT_RESULT: &[(&str, &str)] = &[("text", "N/A"), ("tooltip", "N/A")];
 
-const ICON_PLACEHOLDER: &str = "{ICON}";
+// const ICON_PLACEHOLDER: &str = "{ICON}";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -270,13 +270,8 @@ fn parse_weather<'a>(
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
-
-    // Extract weather description
-    let _weather_desc = current_condition["weatherDesc"][0]["value"]
-        .as_str()
-        .unwrap_or("N/A");
-
-    // Find the weather icon based on the weather code
+    let weather_code = current_condition["weatherCode"].as_str().unwrap();
+    let temperature_field = if args.imperial { "temp_F" } else { "temp_C" };
     *weather_icon = find_weather_icon(
         current_condition["weatherCode"]
             .as_str()
@@ -285,16 +280,6 @@ fn parse_weather<'a>(
             .unwrap(),
         args.nerd_font,
     );
-
-    // Choose the correct set of weather icons
-    let weather_icons = if args.nerd_font {
-        &WEATHER_CODES_NERD_FONT
-    } else {
-        &WEATHER_CODES_DEFAULT
-    };
-
-    // Format the text with temperature and weather condition
-    let temperature_field = if args.imperial { "temp_F" } else { "temp_C" };
     let text = format!(
         "{} {}",
         *weather_icon,
@@ -302,9 +287,7 @@ fn parse_weather<'a>(
     );
     data.insert("text", text);
 
-    let mut tooltip_builder = String::new(); // Use StringBuilder
-    let _weather_code = current_condition["weatherCode"].as_str().unwrap();
-    tooltip_builder.push_str(&format!(
+    let mut tooltip = format!(
         "<b>{}</b> {}°\n",
         current_condition["weatherDesc"][0]["value"]
             .as_str()
@@ -314,11 +297,9 @@ fn parse_weather<'a>(
         } else {
             current_condition["temp_C"].as_str().unwrap()
         },
-    ));
-
-    tooltip_builder.push_str(&format!("Feels like: {}°\n", feels_like));
-
-    tooltip_builder.push_str(&if args.imperial {
+    );
+    tooltip += &format!("Feels like: {}°\n", feels_like);
+    tooltip += &if args.imperial {
         format!(
             "Wind: {} Mph/h\n",
             current_condition["windspeedMiles"].as_str().unwrap()
@@ -328,20 +309,18 @@ fn parse_weather<'a>(
             "Wind: {} Kmph\n",
             current_condition["windspeedKmph"].as_str().unwrap()
         )
-    });
-
-    tooltip_builder.push_str(&format!(
+    };
+    tooltip += &format!(
         "Humidity: {}%\n",
         current_condition["humidity"].as_str().unwrap()
-    ));
-
+    );
     let nearest_area = &weather["nearest_area"][0];
-    tooltip_builder.push_str(&format!(
+    tooltip += &format!(
         "Location: {}, {}, {}\n",
         nearest_area["areaName"][0]["value"].as_str().unwrap(),
         nearest_area["region"][0]["value"].as_str().unwrap(),
         nearest_area["country"][0]["value"].as_str().unwrap()
-    ));
+    );
 
     let now = Local::now();
 
@@ -354,18 +333,18 @@ fn parse_weather<'a>(
     });
 
     for (i, day) in forecast.iter().enumerate() {
-        tooltip_builder.push_str("\n<b>");
+        tooltip += "\n<b>";
         if i == 0 {
-            tooltip_builder.push_str("Today, ");
+            tooltip += "Today, ";
         }
         if i == 1 {
-            tooltip_builder.push_str("Tomorrow, ");
+            tooltip += "Tomorrow, ";
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        tooltip_builder.push_str(&format!("{}</b>\n", date.format(args.date_format.as_str())));
+        tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
         if args.imperial {
-            tooltip_builder.push_str(&format!(
+            tooltip.push_str(&format!(
                 "{} {}° {} {}° ",
                 if args.nerd_font { "\u{eaa1}" } else { "⬆️" },
                 day["maxtempF"].as_str().unwrap(),
@@ -376,7 +355,7 @@ fn parse_weather<'a>(
             let up_arrow_icon = if args.nerd_font { "\u{eaa1}" } else { "⬆️" };
             let down_arrow_icon = if args.nerd_font { "\u{ea9a}" } else { "⬇️" };
 
-            tooltip_builder.push_str(&format!(
+            tooltip.push_str(&format!(
                 "{} {}° {} {}° ",
                 up_arrow_icon,
                 day["maxtempC"].as_str().unwrap(),
@@ -385,14 +364,13 @@ fn parse_weather<'a>(
             ));
         }
 
-        tooltip_builder.push_str(&format!(
+        tooltip.push_str(&format!(
             "{} {} {} {}\n",
             if args.nerd_font { "" } else { "🌅" },
             format_ampm_time(day, "sunrise", args.ampm, args.nerd_font),
             if args.nerd_font { "" } else { "🌇" },
             format_ampm_time(day, "sunset", args.ampm, args.nerd_font)
         ));
-
         let mut weather_icon = "";
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
@@ -427,8 +405,10 @@ fn parse_weather<'a>(
                 })
                 .map(|(_, symbol)| symbol)
             {
-                weather_icon = icon;
+                weather_icon = icon; // Assign the weather icon found for the current hour
             } else {
+                // Handle the case where the icon is not found.
+                // You might want to set a default icon or take appropriate action.
                 eprintln!("Weather icon not found for code: {}", hour["weatherCode"]);
             }
 
@@ -445,15 +425,14 @@ fn parse_weather<'a>(
             );
 
             if !args.hide_conditions {
-                tooltip_line.push_str(format!(", {}", format_chances(hour)).as_str());
+                tooltip_line += format!(", {}", format_chances(hour)).as_str();
             }
 
-            tooltip_line.push_str("\n");
-            tooltip_builder.push_str(&tooltip_line);
+            tooltip_line += "\n";
+            tooltip += &tooltip_line;
         }
     }
-
-    data.insert("tooltip", tooltip_builder);
+    data.insert("tooltip", tooltip);
 
     data
 }
