@@ -7,7 +7,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use retry_policies::Jitter;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 const WEATHER_CODES_DEFAULT: &[(u32, &str)] = &[
     (113, "☀️"),
@@ -73,7 +73,7 @@ const WEATHER_CODES_DEFAULT: &[(u32, &str)] = &[
 ];
 
 const WEATHER_CODES_NERD_FONT: &[(u32, &str)] = &[
-    (113, "\u{e30e}"),
+    (113, "\u{f0599}"),
     (116, "\u{e302}"),
     (119, "\u{e312}"),
     (122, "\u{e311}"),
@@ -241,6 +241,23 @@ async fn get_wttr_response(
     Ok(response)
 }
 
+fn find_weather_icon(code: u32, use_nerd_font: bool) -> &'static str {
+    let weather_icons = if use_nerd_font {
+        &WEATHER_CODES_NERD_FONT
+    } else {
+        &WEATHER_CODES_DEFAULT
+    };
+
+    weather_icons
+        .iter()
+        .find(|(c, _)| *c == code)
+        .map(|(_, symbol)| *symbol)
+        .unwrap_or_else(|| {
+            eprintln!("Weather icon not found for code: {}", code);
+            "⛅" // Default icon in case of an error
+        })
+}
+
 fn parse_weather<'a>(
     weather: Value,
     args: &Args,
@@ -253,12 +270,31 @@ fn parse_weather<'a>(
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
-    let text = format_indicator(
-        current_condition,
-        &args.indicator,
-        weather_icon,
+
+    // Extract weather description
+    let _weather_desc = current_condition["weatherDesc"][0]["value"]
+        .as_str()
+        .unwrap_or("N/A");
+
+    // Find the weather icon based on the weather code
+    *weather_icon = find_weather_icon(
+        current_condition["weatherCode"]
+            .as_str()
+            .unwrap()
+            .parse::<u32>()
+            .unwrap(),
         args.nerd_font,
     );
+
+    // Choose the correct set of weather icons
+    let weather_icons = if args.nerd_font {
+        &WEATHER_CODES_NERD_FONT
+    } else {
+        &WEATHER_CODES_DEFAULT
+    };
+
+    // Format the text with temperature and weather condition
+    let text = format!("{} {}", *weather_icon, feels_like);
     data.insert("text", text);
 
     let mut tooltip_builder = String::new(); // Use StringBuilder
@@ -489,44 +525,4 @@ fn format_ampm_time(day: &Value, key: &str, ampm: bool, nerd_font: bool) -> Stri
             .format("%H:%M")
             .to_string()
     }
-}
-
-fn format_indicator(
-    weather_conditions: &Value,
-    expression: &String,
-    _weather_icon: &&str,
-    use_nerd_font: bool,
-) -> String {
-    if !weather_conditions.is_object() {
-        return String::new();
-    }
-    let default_map = Map::new();
-    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
-    let mut formatted_indicator = expression.to_string();
-    weather_conditions_map.iter().for_each(|condition| {
-        let placeholder = "{".to_owned() + condition.0 + "}";
-        if formatted_indicator.contains(placeholder.as_str()) {
-            let condition_value = if condition.1.is_array() {
-                condition.1.as_array().and_then(|vec| {
-                    vec[0]
-                        .as_object()
-                        .and_then(|value_map| value_map["value"].as_str())
-                })
-            } else {
-                condition.1.as_str()
-            }
-            .unwrap_or("");
-            formatted_indicator = formatted_indicator.replace(placeholder.as_str(), condition_value)
-        }
-    });
-
-    // Replace ICON_PLACEHOLDER with the appropriate weather icon based on the flag
-    let icon_placeholder = if use_nerd_font {
-        "\u{e30e}" // Nerd Font icon for weather
-    } else {
-        "⛅" // Default non-Nerd Font icon for weather
-    };
-
-    formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, icon_placeholder);
-    formatted_indicator
 }
