@@ -340,7 +340,7 @@ fn parse_weather<'a>(
         }
 
         tooltip += &format!(
-            "{} {}\n{} {}\n",
+            "{} {} {} {}\n",
             if args.nerd_font { "" } else { "🌅" },
             format_ampm_time(day, "sunrise", args.ampm, args.nerd_font),
             if args.nerd_font { "" } else { "🌇" },
