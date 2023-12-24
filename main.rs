@@ -294,7 +294,12 @@ fn parse_weather<'a>(
     };
 
     // Format the text with temperature and weather condition
-    let text = format!("{} {}", *weather_icon, feels_like);
+    let temperature_field = if args.imperial { "temp_F" } else { "temp_C" };
+    let text = format!(
+        "{} {}",
+        *weather_icon,
+        current_condition[temperature_field].as_str().unwrap()
+    );
     data.insert("text", text);
 
     let mut tooltip_builder = String::new(); // Use StringBuilder
