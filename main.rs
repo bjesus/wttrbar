@@ -1,7 +1,9 @@
-use core::time;
+use anyhow::{anyhow, bail, Error, Result};
+use core::{panic, time};
 use std::collections::HashMap;
 use std::fs::{metadata, read_to_string, File};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
+use std::process::Command;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -114,7 +116,7 @@ struct Args {
 
     #[arg(
         long,
-        help = " show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
+        help = "show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
     )]
     hide_conditions: bool,
 
@@ -123,14 +125,15 @@ struct Args {
 
     #[arg(long, help = "use fahrenheit instead of celsius")]
     fahrenheit: bool,
+
+    #[arg(long, help = "send notification on failing to retrieve weather data")]
+    notify_on_failure: bool,
 }
 
-fn main() {
-    let args = Args::parse();
+fn get_weather_data(args: &Args) -> Result<HashMap<&'static str, String>> {
+    let mut data: HashMap<&'static str, String> = HashMap::new();
 
-    let mut data = HashMap::new();
-
-    let location = args.location.unwrap_or(String::new());
+    let location = args.location.as_deref().unwrap_or_default();
     let weather_url = format!("https://wttr.in/{}?format=j1", location);
     let cachefile = format!("/tmp/wttrbar-{}.json", location);
 
@@ -148,18 +151,18 @@ fn main() {
 
     let client = Client::new();
     let weather = if is_cache_file_recent {
-        let json_str = read_to_string(&cachefile).unwrap();
-        serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
+        let json_str = read_to_string(&cachefile)?;
+        serde_json::from_str::<serde_json::Value>(&json_str)?
     } else {
         loop {
             match client.get(&weather_url).send() {
-                Ok(response) => break response.json::<Value>().unwrap(),
+                Ok(response) => break response.json::<Value>()?,
                 Err(_) => {
                     iterations += 1;
                     thread::sleep(time::Duration::from_millis(500 * iterations));
 
                     if iterations == threshold {
-                        panic!("No response from endpoint!");
+                        bail!("No response from the endpoint");
                     }
                 }
             }
@@ -167,39 +170,59 @@ fn main() {
     };
 
     if !is_cache_file_recent {
-        let mut file = File::create(&cachefile)
-            .expect(format!("Unable to create cache file at {}", cachefile).as_str());
-
-        file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
-            .expect(format!("Unable to write cache file at {}", cachefile).as_str());
+        if let Ok(mut f) = File::create(&cachefile) {
+            if f.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
+                .is_err()
+            {
+                bail!("Unable to write cache file at {}", cachefile);
+            }
+        } else {
+            bail!("Unable to create cache file at {}", cachefile);
+        }
     }
     let current_condition = &weather["current_condition"][0];
     let feels_like = if args.fahrenheit {
-        current_condition["FeelsLikeF"].as_str().unwrap()
+        current_condition["FeelsLikeF"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("FeelsLikeF"))?
     } else {
-        current_condition["FeelsLikeC"].as_str().unwrap()
+        current_condition["FeelsLikeC"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("FeelsLikeC"))?
     };
-    let weather_code = current_condition["weatherCode"].as_str().unwrap();
+    let weather_code = current_condition["weatherCode"]
+        .as_str()
+        .ok_or_else(|| new_weather_data_error("weatherCode"))?;
     let weather_icon = WEATHER_CODES
         .iter()
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
-        .unwrap();
-    let text = match args.custom_indicator {
+        .ok_or_else(|| {
+            anyhow!(
+                "Unable to find appropriate weather icon for the weather code acquired from weather data"
+            )
+        })?;
+    let text = match &args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
                 "temp_F"
             } else {
                 args.main_indicator.as_str()
             };
-            let indicator = current_condition[main_indicator_code].as_str().unwrap();
+            let indicator = current_condition[main_indicator_code]
+                .as_str()
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Unable to find weather temperature indicator in the acquired weather data"
+                    )
+                })?;
             if args.vertical_view {
                 format!("{}\n{}", weather_icon, indicator)
             } else {
                 format!("{} {}", weather_icon, indicator)
             }
         }
-        Some(expression) => format_indicator(current_condition, expression, weather_icon),
+        Some(expression) => format_indicator(current_condition, expression.as_str(), weather_icon),
     };
     data.insert("text", text);
 
@@ -207,38 +230,58 @@ fn main() {
         "<b>{}</b> {}°\n",
         current_condition["weatherDesc"][0]["value"]
             .as_str()
-            .unwrap(),
+            .ok_or_else(|| { anyhow!("Unable to find weatherDesc in the weather data") })?,
         if args.fahrenheit {
-            current_condition["temp_F"].as_str().unwrap()
+            current_condition["temp_F"]
+                .as_str()
+                .ok_or_else(|| new_weather_data_error("temp_F"))?
         } else {
-            current_condition["temp_C"].as_str().unwrap()
+            current_condition["temp_C"]
+                .as_str()
+                .ok_or_else(|| new_weather_data_error("temp_C"))?
         },
     );
     tooltip += &format!("Feels like: {}°\n", feels_like);
     tooltip += &format!(
         "Wind: {}Km/h\n",
-        current_condition["windspeedKmph"].as_str().unwrap()
+        current_condition["windspeedKmph"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("windspeedKmph"))?
     );
     tooltip += &format!(
         "Humidity: {}%\n",
-        current_condition["humidity"].as_str().unwrap()
+        current_condition["humidity"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("humidity"))?
     );
     let nearest_area = &weather["nearest_area"][0];
     tooltip += &format!(
         "Location: {}, {}, {}\n",
-        nearest_area["areaName"][0]["value"].as_str().unwrap(),
-        nearest_area["region"][0]["value"].as_str().unwrap(),
-        nearest_area["country"][0]["value"].as_str().unwrap()
+        nearest_area["areaName"][0]["value"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("areaName"))?,
+        nearest_area["region"][0]["value"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("region"))?,
+        nearest_area["country"][0]["value"]
+            .as_str()
+            .ok_or_else(|| new_weather_data_error("country"))?
     );
 
     let now = Local::now();
 
     let today = Local::now().date_naive();
-    let mut forecast = weather["weather"].as_array().unwrap().clone();
+    let mut forecast = weather["weather"]
+        .as_array()
+        .ok_or_else(|| new_weather_data_error("weather"))?
+        .clone();
     forecast.retain(|item| {
-        let item_date =
-            NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        item_date >= today
+        if let Some(date_str) = item["date"].as_str() {
+            if let Ok(item_date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+                return item_date >= today;
+            }
+        }
+        false
     });
 
     for (i, day) in forecast.iter().enumerate() {
@@ -249,20 +292,34 @@ fn main() {
         if i == 1 {
             tooltip += "Tomorrow, ";
         }
-        let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
+        let date = NaiveDate::parse_from_str(
+            day["date"]
+                .as_str()
+                .ok_or_else(|| new_weather_data_error("date"))?,
+            "%Y-%m-%d",
+        )
+        .unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
         if args.fahrenheit {
             tooltip += &format!(
                 "⬆️ {}° ⬇️ {}° ",
-                day["maxtempF"].as_str().unwrap(),
-                day["mintempF"].as_str().unwrap(),
+                day["maxtempF"]
+                    .as_str()
+                    .ok_or_else(|| new_weather_data_error("maxtempF"))?,
+                day["mintempF"]
+                    .as_str()
+                    .ok_or_else(|| new_weather_data_error("mintempF"))?,
             );
         } else {
             tooltip += &format!(
                 "⬆️ {}° ⬇️ {}° ",
-                day["maxtempC"].as_str().unwrap(),
-                day["mintempC"].as_str().unwrap(),
+                day["maxtempC"]
+                    .as_str()
+                    .ok_or_else(|| new_weather_data_error("maxtempC"))?,
+                day["mintempC"]
+                    .as_str()
+                    .ok_or_else(|| new_weather_data_error("mintempC"))?,
             );
         };
 
@@ -271,39 +328,59 @@ fn main() {
             format_ampm_time(day, "sunrise", args.ampm),
             format_ampm_time(day, "sunset", args.ampm),
         );
-        for hour in day["hourly"].as_array().unwrap() {
-            let hour_time = hour["time"].as_str().unwrap();
+        for hour in day["hourly"]
+            .as_array()
+            .ok_or_else(|| new_weather_data_error("hourly"))?
+        {
+            let hour_time = hour["time"]
+                .as_str()
+                .ok_or_else(|| new_weather_data_error("time"))?;
             let formatted_hour_time = if hour_time.len() >= 2 {
                 hour_time[..hour_time.len() - 2].to_string()
             } else {
                 hour_time.to_string()
             };
-            if i == 0
-                && now.hour() >= 2
-                && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
-            {
+            if i == 0 && now.hour() >= 2 && formatted_hour_time.parse::<u32>()? < now.hour() - 2 {
                 continue;
             }
 
             let mut tooltip_line = format!(
                 "{} {} {} {}",
-                format_time(hour["time"].as_str().unwrap(), args.ampm),
+                format_time(
+                    hour["time"]
+                        .as_str()
+                        .ok_or_else(|| new_weather_data_error("time"))?,
+                    args.ampm
+                ),
                 WEATHER_CODES
                     .iter()
-                    .find(|(code, _)| *code
-                        == hour["weatherCode"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<i32>()
-                            .unwrap())
+                    .find(|(symb_code, _)| {
+                        hour["weatherCode"].as_str().is_some_and(|hour_code_str| {
+                            hour_code_str
+                                .parse::<i32>()
+                                .is_ok_and(|hour_code| hour_code == *symb_code)
+                        })
+                    })
                     .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                    .ok_or_else(|| anyhow!(
+                        "Unexpectedly failed to find weather symbol for the acquired hour"
+                    ))?,
                 if args.fahrenheit {
-                    format_temp(hour["FeelsLikeF"].as_str().unwrap())
+                    format_temp(
+                        hour["FeelsLikeF"]
+                            .as_str()
+                            .ok_or_else(|| new_weather_data_error("FeelsLikeF"))?,
+                    )
                 } else {
-                    format_temp(hour["FeelsLikeC"].as_str().unwrap())
+                    format_temp(
+                        hour["FeelsLikeC"]
+                            .as_str()
+                            .ok_or_else(|| new_weather_data_error("FeelsLikeC"))?,
+                    )
                 },
-                hour["weatherDesc"][0]["value"].as_str().unwrap(),
+                hour["weatherDesc"][0]["value"]
+                    .as_str()
+                    .ok_or_else(|| new_weather_data_error("weatherDesc[0].value"))?,
             );
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour)).as_str();
@@ -314,8 +391,45 @@ fn main() {
     }
     data.insert("tooltip", tooltip);
 
-    let json_data = json!(data);
-    println!("{}", json_data);
+    Ok(data)
+}
+
+fn main() {
+    let args = Args::parse();
+
+    match get_weather_data(&args) {
+        Ok(data) => {
+            let json_data = json!(data);
+            println!("{}", json_data);
+        }
+        Err(data_err) => {
+            if args.notify_on_failure {
+                let mut cmd = Command::new("notify-send");
+                cmd.args([
+                    "Wttrbar",
+                    &format!("Error: {}", data_err),
+                    "--app-name=wttrbar",
+                ]);
+                let res = cmd.status();
+                match res {
+                Ok(s) => {
+                    if s.success() {
+                        panic!("Error: {data_err}. Error notification has been sent")
+                    } else {
+                        panic!(
+                            "Error: {data_err}. Failed to send notification: notification daemon error"
+                        )
+                    }
+                }
+                Err(notif_err) => match notif_err.kind() {
+                    ErrorKind::NotFound => panic!("Error: {data_err}. Failed to send notification: \"notify-send\" executable not found, please, make sure that it is installed and available in $PATH"),
+                    _ => panic!("Error: {data_err}. Failed to send notification: {notif_err}"), 
+                },
+            }
+            }
+            panic!("Error: {data_err}");
+        }
+    }
 }
 
 fn format_time(time: &str, ampm: bool) -> String {
@@ -381,7 +495,7 @@ fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
             .to_string()
     }
 }
-fn format_indicator(weather_conditions: &Value, expression: String, weather_icon: &&str) -> String {
+fn format_indicator(weather_conditions: &Value, expression: &str, weather_icon: &&str) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
@@ -411,4 +525,11 @@ fn format_indicator(weather_conditions: &Value, expression: String, weather_icon
         formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
     }
     formatted_indicator
+}
+
+fn new_weather_data_error(fname: &'static str) -> Error {
+    anyhow!(
+        "Unexpectedly failed to find field: {} in the acquired weather data",
+        fname
+    )
 }
