@@ -1,6 +1,9 @@
 use core::time;
 use std::collections::HashMap;
+use std::fs::{metadata, read_to_string, File};
+use std::io::Write;
 use std::thread;
+use std::time::{Duration, SystemTime};
 
 use chrono::prelude::*;
 use clap::Parser;
@@ -127,48 +130,80 @@ fn main() {
 
     let mut data = HashMap::new();
 
-    let weather_url = format!(
-        "https://wttr.in/{}?format=j1",
-        args.location.unwrap_or(String::new())
-    );
+    let location = args.location.unwrap_or(String::new());
+    let weather_url = format!("https://wttr.in/{}?format=j1", location);
+    let cachefile = format!("/tmp/wttrbar-{}.json", location);
 
     let mut iterations = 0;
     let threshold = 20;
-    let client = Client::new();
-    let weather = loop {
-        match client.get(&weather_url).send() {
-            Ok(response) => break response.json::<Value>().unwrap(),
-            Err(_) => {
-                iterations += 1;
-                thread::sleep(time::Duration::from_millis(500 * iterations));
 
-                if iterations == threshold {
-                    panic!("No response from endpoint!");
+    let is_cache_file_recent = if let Ok(metadata) = metadata(&cachefile) {
+        let ten_minutes_ago = SystemTime::now() - Duration::from_secs(600);
+        metadata
+            .modified()
+            .map_or(false, |mod_time| mod_time > ten_minutes_ago)
+    } else {
+        false
+    };
+
+    let client = Client::new();
+    let weather = if is_cache_file_recent {
+        let json_str = read_to_string(&cachefile).unwrap();
+        serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
+    } else {
+        loop {
+            match client.get(&weather_url).send() {
+                Ok(response) => break response.json::<Value>().unwrap(),
+                Err(_) => {
+                    iterations += 1;
+                    thread::sleep(time::Duration::from_millis(500 * iterations));
+
+                    if iterations == threshold {
+                        panic!("No response from endpoint!");
+                    }
                 }
             }
         }
     };
 
+    if !is_cache_file_recent {
+        let mut file = File::create(&cachefile)
+            .expect(format!("Unable to create cache file at {}", cachefile).as_str());
+
+        file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
+            .expect(format!("Unable to write cache file at {}", cachefile).as_str());
+    }
     let current_condition = &weather["current_condition"][0];
-    let feels_like = if args.fahrenheit {
-        current_condition["FeelsLikeF"].as_str().unwrap()
+    let feels_like = current_condition[if args.fahrenheit {
+        "FeelsLikeF"
     } else {
-        current_condition["FeelsLikeC"].as_str().unwrap()
-    };
-    let weather_code = current_condition["weatherCode"].as_str().unwrap();
+        "FeelsLikeC"
+    }]
+    .as_str()
+    .unwrap_or(&"");
+    let weather_code = current_condition["weatherCode"]
+        .as_str()
+        .unwrap_or(&"")
+        .parse::<i32>()
+        .unwrap_or(0);
     let weather_icon = WEATHER_CODES
         .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+        .find(|(code, _)| *code == weather_code)
         .map(|(_, symbol)| symbol)
-        .unwrap();
+        .unwrap_or(&"");
+
+    let main_indicator_code = match args.main_indicator.as_str() {
+        "{temp_F}" => "temp_F",
+        "{temp_C}" => "temp_C",
+        _ => &args.main_indicator,
+    };
+
+    let indicator = current_condition[main_indicator_code]
+        .as_str()
+        .unwrap_or(&"");
+
     let text = match args.custom_indicator {
         None => {
-            let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
-                "temp_F"
-            } else {
-                args.main_indicator.as_str()
-            };
-            let indicator = current_condition[main_indicator_code].as_str().unwrap();
             if args.vertical_view {
                 format!("{}\n{}", weather_icon, indicator)
             } else {
@@ -177,6 +212,7 @@ fn main() {
         }
         Some(expression) => format_indicator(current_condition, expression, weather_icon),
     };
+
     data.insert("text", text);
 
     let mut tooltip = format!(
