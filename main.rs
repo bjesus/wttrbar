@@ -7,6 +7,7 @@ use std::time::{Duration, SystemTime};
 
 use chrono::prelude::*;
 use clap::Parser;
+use lazy_static::lazy_static;
 use reqwest::blocking::Client;
 use serde_json::{json, Map, Value};
 
@@ -216,32 +217,43 @@ fn main() {
     data.insert("text", text);
 
     let mut tooltip = format!(
-        "<b>{}</b> {}°\n",
+        "<b>{}</b> {}°\nFeels like: {}°\n",
         current_condition["weatherDesc"][0]["value"]
             .as_str()
-            .unwrap(),
+            .expect("No weather description"),
         if args.fahrenheit {
-            current_condition["temp_F"].as_str().unwrap()
+            current_condition["temp_F"]
+                .as_str()
+                .expect("No Fahrenheit temperature")
         } else {
-            current_condition["temp_C"].as_str().unwrap()
+            current_condition["temp_C"]
+                .as_str()
+                .expect("No Celsius temperature")
         },
+        feels_like,
     );
-    tooltip += &format!("Feels like: {}°\n", feels_like);
-    tooltip += &format!(
-        "Wind: {}Km/h\n",
-        current_condition["windspeedKmph"].as_str().unwrap()
-    );
-    tooltip += &format!(
-        "Humidity: {}%\n",
-        current_condition["humidity"].as_str().unwrap()
-    );
+
+    tooltip.push_str(&format!(
+        "Wind: {}Km/h\nHumidity: {}%\n",
+        current_condition["windspeedKmph"]
+            .as_str()
+            .expect("No wind speed"),
+        current_condition["humidity"].as_str().expect("No humidity"),
+    ));
+
     let nearest_area = &weather["nearest_area"][0];
-    tooltip += &format!(
+    tooltip.push_str(&format!(
         "Location: {}, {}, {}\n",
-        nearest_area["areaName"][0]["value"].as_str().unwrap(),
-        nearest_area["region"][0]["value"].as_str().unwrap(),
-        nearest_area["country"][0]["value"].as_str().unwrap()
-    );
+        nearest_area["areaName"][0]["value"]
+            .as_str()
+            .expect("No area name"),
+        nearest_area["region"][0]["value"]
+            .as_str()
+            .expect("No region"),
+        nearest_area["country"][0]["value"]
+            .as_str()
+            .expect("No country"),
+    ));
 
     let now = Local::now();
 
@@ -350,8 +362,8 @@ fn format_temp(temp: &str) -> String {
     format!("{: >3}°", temp)
 }
 
-fn format_chances(hour: &serde_json::Value) -> String {
-    let chances: HashMap<&str, &str> = [
+lazy_static! {
+    static ref CHANCES: HashMap<&'static str, &'static str> = [
         ("chanceoffog", "Fog"),
         ("chanceoffrost", "Frost"),
         ("chanceofovercast", "Overcast"),
@@ -364,17 +376,21 @@ fn format_chances(hour: &serde_json::Value) -> String {
     .iter()
     .cloned()
     .collect();
+}
 
-    let mut conditions = vec![];
-    for (event, name) in chances.iter() {
-        if let Some(chance) = hour[event].as_str() {
-            if let Ok(chance_value) = chance.parse::<u32>() {
-                if chance_value > 0 {
-                    conditions.push((name, chance_value));
-                }
-            }
-        }
-    }
+fn format_chances(hour: &Value) -> String {
+    let conditions: Vec<_> = CHANCES
+        .iter()
+        .filter_map(|(event, name)| {
+            hour[event]
+                .as_str()
+                .and_then(|chance| chance.parse::<u32>().ok())
+                .filter(|&chance_value| chance_value > 0)
+                .map(|chance_value| (name, chance_value))
+        })
+        .collect();
+
+    let mut conditions = conditions;
     conditions.sort_by_key(|&(_, chance_value)| std::cmp::Reverse(chance_value));
     conditions
         .iter()
@@ -384,43 +400,45 @@ fn format_chances(hour: &serde_json::Value) -> String {
 }
 
 fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
-    if ampm {
-        day["astronomy"][0][key].as_str().unwrap().to_string()
-    } else {
-        NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
-            .unwrap()
-            .format("%H:%M")
-            .to_string()
+    let time = day["astronomy"][0][key].as_str();
+    match time {
+        Some(time_str) => {
+            if ampm {
+                time_str.to_string()
+            } else {
+                match NaiveTime::parse_from_str(time_str, "%I:%M %p") {
+                    Ok(parsed_time) => parsed_time.format("%H:%M").to_string(),
+                    Err(_) => "00:00".to_string(), // default value
+                }
+            }
+        }
+        None => "00:00".to_string(), // default value
     }
 }
 fn format_indicator(weather_conditions: &Value, expression: String, weather_icon: &&str) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
-    let default_map = Map::new();
-    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
-    let mut formatted_indicator = expression.to_string();
-    weather_conditions_map
+    let weather_conditions_map = if let Some(map) = weather_conditions.as_object() {
+        map.clone()
+    } else {
+        Map::new()
+    };
+    let conditions: Vec<_> = weather_conditions_map
         .iter()
-        .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
-        .for_each(|condition| {
-            if formatted_indicator.contains(condition.0.as_str()) {
-                let condition_value = if condition.1.is_array() {
-                    condition.1.as_array().and_then(|vec| {
-                        vec[0]
-                            .as_object()
-                            .and_then(|value_map| value_map["value"].as_str())
-                    })
-                } else {
-                    condition.1.as_str()
-                }
-                .unwrap_or("");
-                formatted_indicator =
-                    formatted_indicator.replace(condition.0.as_str(), condition_value)
-            }
-        });
-    if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
+        .filter_map(|(condition, value)| {
+            let condition_value = if value.is_array() {
+                value.as_array()?.get(0)?.as_object()?["value"].as_str()
+            } else {
+                value.as_str()
+            };
+            condition_value.map(|v| (condition, v))
+        })
+        .collect();
+    let mut formatted_indicator = expression;
+    for (condition, value) in conditions {
+        let placeholder = format!("{{{}}}", condition);
+        formatted_indicator = formatted_indicator.replace(&placeholder, value);
     }
-    formatted_indicator
+    formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
 }
