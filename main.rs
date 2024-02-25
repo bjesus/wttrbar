@@ -2,6 +2,7 @@ use core::time;
 use std::collections::HashMap;
 use std::fs::{metadata, read_to_string, File};
 use std::io::Write;
+use std::process::exit;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -159,7 +160,8 @@ fn main() {
                     thread::sleep(time::Duration::from_millis(500 * iterations));
 
                     if iterations == threshold {
-                        panic!("No response from endpoint!");
+                        println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"cannot access wttr.in\"}}");
+                        exit(0)
                     }
                 }
             }
