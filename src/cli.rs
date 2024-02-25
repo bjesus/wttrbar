@@ -1,3 +1,4 @@
+use crate::Lang;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -48,4 +49,7 @@ pub struct Args {
 
     #[arg(long, help = "use fahrenheit instead of celsius")]
     pub fahrenheit: bool,
+
+    #[arg(value_enum, short, long, help = "language to use")]
+    pub lang: Option<Lang>,
 }

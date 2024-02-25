@@ -12,8 +12,10 @@ use reqwest::blocking::Client;
 use serde_json::{json, Map, Value};
 
 use crate::cli::Args;
+use crate::lang::Lang;
 
 mod cli;
+mod lang;
 
 const WEATHER_CODES: &[(i32, &str)] = &[
     (113, "☀️"),
@@ -82,11 +84,20 @@ const ICON_PLACEHOLDER: &str = "{ICON}";
 
 fn main() {
     let args = Args::parse();
+    let lang = if let Some(lang) = args.lang {
+        lang
+    } else {
+        Lang::EN
+    };
 
     let mut data = HashMap::new();
 
     let location = args.location.unwrap_or(String::new());
-    let weather_url = format!("https://wttr.in/{}?format=j1", location);
+    let weather_url = format!(
+        "https://{}/{}?format=j1",
+        lang.wttr_in_subdomain(),
+        location
+    );
     let cachefile = format!("/tmp/wttrbar-{}.json", location);
 
     let mut iterations = 0;
@@ -170,18 +181,20 @@ fn main() {
             current_condition["temp_C"].as_str().unwrap()
         },
     );
-    tooltip += &format!("Feels like: {}°\n", feels_like);
+    tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
     tooltip += &format!(
         "Wind: {}Km/h\n",
         current_condition["windspeedKmph"].as_str().unwrap()
     );
     tooltip += &format!(
-        "Humidity: {}%\n",
+        "{}: {}%\n",
+        lang.humidity(),
         current_condition["humidity"].as_str().unwrap()
     );
     let nearest_area = &weather["nearest_area"][0];
     tooltip += &format!(
-        "Location: {}, {}, {}\n",
+        "{}: {}, {}, {}\n",
+        lang.location(),
         nearest_area["areaName"][0]["value"].as_str().unwrap(),
         nearest_area["region"][0]["value"].as_str().unwrap(),
         nearest_area["country"][0]["value"].as_str().unwrap()
@@ -200,10 +213,10 @@ fn main() {
     for (i, day) in forecast.iter().enumerate() {
         tooltip += "\n<b>";
         if i == 0 {
-            tooltip += "Today, ";
+            tooltip += &format!("{}, ", lang.today());
         }
         if i == 1 {
-            tooltip += "Tomorrow, ";
+            tooltip += &format!("{}, ", lang.tomorrow());
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
@@ -262,7 +275,7 @@ fn main() {
                 hour["weatherDesc"][0]["value"].as_str().unwrap(),
             );
             if !args.hide_conditions {
-                tooltip_line += format!(", {}", format_chances(hour)).as_str();
+                tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();
             }
             tooltip_line += "\n";
             tooltip += &tooltip_line;
@@ -294,16 +307,16 @@ fn format_temp(temp: &str) -> String {
     format!("{: >3}°", temp)
 }
 
-fn format_chances(hour: &serde_json::Value) -> String {
-    let chances: HashMap<&str, &str> = [
-        ("chanceoffog", "Fog"),
-        ("chanceoffrost", "Frost"),
-        ("chanceofovercast", "Overcast"),
-        ("chanceofrain", "Rain"),
-        ("chanceofsnow", "Snow"),
-        ("chanceofsunshine", "Sunshine"),
-        ("chanceofthunder", "Thunder"),
-        ("chanceofwindy", "Wind"),
+fn format_chances(hour: &serde_json::Value, lang: &Lang) -> String {
+    let chances: HashMap<&str, String> = [
+        ("chanceoffog", lang.fog()),
+        ("chanceoffrost", lang.frost()),
+        ("chanceofovercast", lang.overcast()),
+        ("chanceofrain", lang.rain()),
+        ("chanceofsnow", lang.snow()),
+        ("chanceofsunshine", lang.sunshine()),
+        ("chanceofthunder", lang.thunder()),
+        ("chanceofwindy", lang.wind()),
     ]
     .iter()
     .cloned()
