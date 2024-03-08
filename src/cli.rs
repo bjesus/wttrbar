@@ -40,7 +40,7 @@ pub struct Args {
 
     #[arg(
         long,
-        help = " show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
+        help = "show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
     )]
     pub hide_conditions: bool,
 
