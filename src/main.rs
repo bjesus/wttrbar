@@ -9,130 +9,34 @@ use std::time::{Duration, SystemTime};
 use chrono::prelude::*;
 use clap::Parser;
 use reqwest::blocking::Client;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
-const WEATHER_CODES: &[(i32, &str)] = &[
-    (113, "☀️"),
-    (116, "🌤️"),
-    (119, "☁️"),
-    (122, "🌥️"),
-    (143, "🌫️"),
-    (176, "🌦️"),
-    (179, "🌧️"),
-    (182, "🌨️"),
-    (185, "🌨️"),
-    (200, "🌩️"),
-    (227, "❄️"),
-    (230, "❄️"),
-    (248, "🌫️"),
-    (260, "🌫️"),
-    (263, "🌧️"),
-    (266, "🌧️"),
-    (281, "🌦️"),
-    (284, "🌦️"),
-    (293, "🌧️"),
-    (296, "🌧️"),
-    (299, "🌧️"),
-    (302, "🌧️"),
-    (305, "🌧️"),
-    (308, "🌧️"),
-    (311, "🌧️"),
-    (314, "🌧️"),
-    (317, "🌧️"),
-    (320, "🌨️"),
-    (323, "🌨️"),
-    (326, "🌨️"),
-    (329, "🌨️"),
-    (332, "🌨️"),
-    (335, "🌨️"),
-    (338, "🌨️"),
-    (350, "🌨️"),
-    (353, "🌧️"),
-    (356, "🌧️"),
-    (359, "🌧️"),
-    (362, "🌨️"),
-    (365, "🌨️"),
-    (368, "🌨️"),
-    (371, "🌨️"),
-    (374, "🌨️"),
-    (377, "🌨️"),
-    (386, "🌩️"),
-    (389, "🌨️"),
-    (392, "🌨️"),
-    (395, "🌨️"),
-    (398, "🌨️"),
-    (401, "🌨️"),
-    (404, "🌨️"),
-    (407, "🌨️"),
-    (410, "🌨️"),
-    (413, "🌨️"),
-    (416, "🌨️"),
-    (419, "🌨️"),
-    (422, "🌨️"),
-    (425, "🌨️"),
-    (428, "🌨️"),
-    (431, "🌨️"),
-];
+use crate::cli::Args;
+use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES};
+use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
+use crate::lang::Lang;
 
-const ICON_PLACEHOLDER: &str = "{ICON}";
-
-#[derive(Parser, Debug)]
-#[command(author = "Yo'av Moshe",
-version = None,
-about = "A simple but detailed weather indicator for Waybar using wttr.in",
-long_about = None)
-]
-struct Args {
-    #[arg(
-        long,
-        default_value = "temp_C",
-        help = "decide which current_conditions key will be shown on waybar"
-    )]
-    main_indicator: String,
-
-    #[arg(
-        long,
-        help = "optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. example:\n\
-        \"{ICON}{temp_C}({FeelsLikeC})\" will be transformed to \"text\":\"🌧️0(-4)\" in output"
-    )]
-    custom_indicator: Option<String>,
-
-    #[arg(
-        long,
-        default_value = "%Y-%m-%d",
-        help = "formats the date next to the days. see https://docs.rs/chrono/latest/chrono/format/strftime/index.html"
-    )]
-    date_format: String,
-
-    #[arg(long, help = "pass a specific location to wttr.in")]
-    location: Option<String>,
-
-    #[arg(
-        long,
-        help = "shows the icon on the first line and temperature in a new line"
-    )]
-    vertical_view: bool,
-
-    #[arg(
-        long,
-        help = " show a shorter description next to each hour, like 7° Mist instead of 7° Mist, Overcast 81%, Sunshine 17%, Frost 15%"
-    )]
-    hide_conditions: bool,
-
-    #[arg(long, help = "display time in AM/PM format")]
-    ampm: bool,
-
-    #[arg(long, help = "use fahrenheit instead of celsius")]
-    fahrenheit: bool,
-}
+mod cli;
+mod constants;
+mod format;
+mod lang;
 
 fn main() {
     let args = Args::parse();
+    let lang = if let Some(lang) = args.lang {
+        lang
+    } else {
+        Lang::EN
+    };
 
     let mut data = HashMap::new();
 
     let location = args.location.unwrap_or(String::new());
-    let weather_url = format!("https://wttr.in/{}?format=j1", location);
+    let weather_url = format!(
+        "https://{}/{}?format=j1",
+        lang.wttr_in_subdomain(),
+        location
+    );
     let cachefile = format!("/tmp/wttrbar-{}.json", location);
 
     let mut iterations = 0;
@@ -216,18 +120,20 @@ fn main() {
             current_condition["temp_C"].as_str().unwrap()
         },
     );
-    tooltip += &format!("Feels like: {}°\n", feels_like);
+    tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
     tooltip += &format!(
         "Wind: {}Km/h\n",
         current_condition["windspeedKmph"].as_str().unwrap()
     );
     tooltip += &format!(
-        "Humidity: {}%\n",
+        "{}: {}%\n",
+        lang.humidity(),
         current_condition["humidity"].as_str().unwrap()
     );
     let nearest_area = &weather["nearest_area"][0];
     tooltip += &format!(
-        "Location: {}, {}, {}\n",
+        "{}: {}, {}, {}\n",
+        lang.location(),
         nearest_area["areaName"][0]["value"].as_str().unwrap(),
         nearest_area["region"][0]["value"].as_str().unwrap(),
         nearest_area["country"][0]["value"].as_str().unwrap()
@@ -246,10 +152,10 @@ fn main() {
     for (i, day) in forecast.iter().enumerate() {
         tooltip += "\n<b>";
         if i == 0 {
-            tooltip += "Today, ";
+            tooltip += &format!("{}, ", lang.today());
         }
         if i == 1 {
-            tooltip += "Tomorrow, ";
+            tooltip += &format!("{}, ", lang.tomorrow());
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
@@ -308,7 +214,7 @@ fn main() {
                 hour["weatherDesc"][0]["value"].as_str().unwrap(),
             );
             if !args.hide_conditions {
-                tooltip_line += format!(", {}", format_chances(hour)).as_str();
+                tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();
             }
             tooltip_line += "\n";
             tooltip += &tooltip_line;
@@ -318,99 +224,4 @@ fn main() {
 
     let json_data = json!(data);
     println!("{}", json_data);
-}
-
-fn format_time(time: &str, ampm: bool) -> String {
-    let hour = time.replace("00", "").parse::<i32>().unwrap();
-
-    if ampm {
-        let am_or_pm = if hour >= 12 { "pm" } else { "am" };
-        let hour12 = if hour == 0 || hour == 12 {
-            12
-        } else {
-            hour % 12
-        };
-        format!("{: <4}", format!("{}{}", hour12, am_or_pm))
-    } else {
-        format!("{:02}", hour)
-    }
-}
-
-fn format_temp(temp: &str) -> String {
-    format!("{: >3}°", temp)
-}
-
-fn format_chances(hour: &serde_json::Value) -> String {
-    let chances: HashMap<&str, &str> = [
-        ("chanceoffog", "Fog"),
-        ("chanceoffrost", "Frost"),
-        ("chanceofovercast", "Overcast"),
-        ("chanceofrain", "Rain"),
-        ("chanceofsnow", "Snow"),
-        ("chanceofsunshine", "Sunshine"),
-        ("chanceofthunder", "Thunder"),
-        ("chanceofwindy", "Wind"),
-    ]
-    .iter()
-    .cloned()
-    .collect();
-
-    let mut conditions = vec![];
-    for (event, name) in chances.iter() {
-        if let Some(chance) = hour[event].as_str() {
-            if let Ok(chance_value) = chance.parse::<u32>() {
-                if chance_value > 0 {
-                    conditions.push((name, chance_value));
-                }
-            }
-        }
-    }
-    conditions.sort_by_key(|&(_, chance_value)| std::cmp::Reverse(chance_value));
-    conditions
-        .iter()
-        .map(|&(name, chance_value)| format!("{} {}%", name, chance_value))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
-    if ampm {
-        day["astronomy"][0][key].as_str().unwrap().to_string()
-    } else {
-        NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
-            .unwrap()
-            .format("%H:%M")
-            .to_string()
-    }
-}
-fn format_indicator(weather_conditions: &Value, expression: String, weather_icon: &&str) -> String {
-    if !weather_conditions.is_object() {
-        return String::new();
-    }
-    let default_map = Map::new();
-    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
-    let mut formatted_indicator = expression.to_string();
-    weather_conditions_map
-        .iter()
-        .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
-        .for_each(|condition| {
-            if formatted_indicator.contains(condition.0.as_str()) {
-                let condition_value = if condition.1.is_array() {
-                    condition.1.as_array().and_then(|vec| {
-                        vec[0]
-                            .as_object()
-                            .and_then(|value_map| value_map["value"].as_str())
-                    })
-                } else {
-                    condition.1.as_str()
-                }
-                .unwrap_or("");
-                formatted_indicator =
-                    formatted_indicator.replace(condition.0.as_str(), condition_value)
-            }
-        });
-    if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
-    }
-    formatted_indicator
 }
