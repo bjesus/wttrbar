@@ -111,7 +111,7 @@ fn main() {
 
     let mut tooltip = format!(
         "<b>{}</b> {}°\n",
-        current_condition["weatherDesc"][0]["value"]
+        current_condition[lang.weather_desc()][0]["value"]
             .as_str()
             .unwrap(),
         if args.fahrenheit {
@@ -211,7 +211,7 @@ fn main() {
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
                 },
-                hour["weatherDesc"][0]["value"].as_str().unwrap(),
+                hour[lang.weather_desc()][0]["value"].as_str().unwrap(),
             );
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();
