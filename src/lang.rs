@@ -89,7 +89,7 @@ impl Lang {
         match &self {
             Self::EN => "Sunshine".to_string(),
             Self::DE => "Sonnenschein".to_string(),
-            Self::PL => "Nasłonecznie".to_string(),
+            Self::PL => "Nasłonecznienie".to_string(),
         }
     }
     pub fn thunder(&self) -> String {
