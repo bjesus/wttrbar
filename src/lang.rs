@@ -101,7 +101,7 @@ impl Lang {
         match &self {
             Self::EN => "Sunshine".to_string(),
             Self::DE => "Sonnenschein".to_string(),
-            Self::PL => "Słonecznie".to_string(),
+            Self::PL => "Nasłonecznienie".to_string(),
             Self::RU => "Солнечно".to_string(),
         }
     }
@@ -119,6 +119,14 @@ impl Lang {
             Self::DE => "Wind".to_string(),
             Self::PL => "Wiatr".to_string(),
             Self::RU => "Ветер".to_string(),
+        }
+    }
+    pub fn weather_desc(&self) -> String {
+        match &self {
+            Lang::EN => "weatherDesc".to_string(),
+            Lang::DE => "lang_de".to_string(),
+            Lang::PL => "lang_pl".to_string(),
+            Lang::RU => "lang_ru".to_string(),
         }
     }
 }
