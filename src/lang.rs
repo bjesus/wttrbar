@@ -118,7 +118,7 @@ impl Lang {
             Self::EN => "Wind".to_string(),
             Self::DE => "Wind".to_string(),
             Self::PL => "Wiatr".to_string(),
-            Self::RU => "Ветренно".to_string(),
+            Self::RU => "Ветер".to_string(),
         }
     }
 }

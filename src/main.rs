@@ -122,7 +122,8 @@ fn main() {
     );
     tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
     tooltip += &format!(
-        "Wind: {}Km/h\n",
+        "{}: {}Km/h\n",
+        lang.wind(),
         current_condition["windspeedKmph"].as_str().unwrap()
     );
     tooltip += &format!(
