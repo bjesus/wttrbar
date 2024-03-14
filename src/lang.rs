@@ -64,7 +64,7 @@ impl Lang {
             Self::RU => "Сегодня".to_string(),
             Self::TR => "Bugün".to_string(),
             Self::FR => "Aujourd'hui".to_string(),
-            Self::RU => "Сёння".to_string(),
+            Self::BE => "Сёння".to_string(),
         }
     }
     pub fn tomorrow(&self) -> String {
