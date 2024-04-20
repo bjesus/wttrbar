@@ -175,8 +175,12 @@ fn main() {
 
     for (i, day) in forecast.iter().enumerate() {
         tooltip += "\n<b>";
-        tooltip += &format!("{}, ", lang.today());
-        tooltip += &format!("{}, ", lang.tomorrow());
+        if i == 0 {
+            tooltip += &format!("{}, ", lang.today());
+        }
+        if i == 1 {
+            tooltip += &format!("{}, ", lang.tomorrow());
+        }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
