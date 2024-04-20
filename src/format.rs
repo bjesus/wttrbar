@@ -87,7 +87,7 @@ pub fn format_ampm_time(
 pub fn format_indicator(
     weather_conditions: &Value,
     expression: String,
-    weather_icon: &&str,
+    weather_icon: &str,
     use_nerd_font: bool,
 ) -> String {
     if !weather_conditions.is_object() {

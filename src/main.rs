@@ -23,6 +23,20 @@ mod constants;
 mod format;
 mod lang;
 
+fn get_weather_icon(weather_code: &str, use_nerd_font: bool) -> &'static str {
+    let weather_codes = if use_nerd_font {
+        &WEATHER_CODES_NERD_FONT
+    } else {
+        &WEATHER_CODES_DEFAULT
+    };
+
+    weather_codes
+        .iter()
+        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+        .map(|(_, symbol)| symbol)
+        .unwrap()
+}
+
 fn main() {
     let args = Args::parse();
     let lang = if let Some(lang) = args.lang {
@@ -88,19 +102,7 @@ fn main() {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = if args.use_nerd_font {
-        WEATHER_CODES_NERD_FONT
-            .iter()
-            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-            .map(|(_, symbol)| symbol)
-            .unwrap()
-    } else {
-        WEATHER_CODES_DEFAULT
-            .iter()
-            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-            .map(|(_, symbol)| symbol)
-            .unwrap()
-    };
+    let weather_icon = get_weather_icon(weather_code, args.use_nerd_font);
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -237,36 +239,13 @@ fn main() {
                 continue;
             }
 
+            let weather_icon =
+                get_weather_icon(hour["weatherCode"].as_str().unwrap(), args.use_nerd_font);
+
             let mut tooltip_line = format!(
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
-                if args.use_nerd_font {
-                    WEATHER_CODES_NERD_FONT
-                        .iter()
-                        .find(|(code, _)| {
-                            *code
-                                == hour["weatherCode"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse::<i32>()
-                                    .unwrap()
-                        })
-                        .map(|(_, symbol)| symbol)
-                        .unwrap()
-                } else {
-                    WEATHER_CODES_DEFAULT
-                        .iter()
-                        .find(|(code, _)| {
-                            *code
-                                == hour["weatherCode"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse::<i32>()
-                                    .unwrap()
-                        })
-                        .map(|(_, symbol)| symbol)
-                        .unwrap()
-                },
+                weather_icon,
                 if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
