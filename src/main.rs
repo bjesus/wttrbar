@@ -213,12 +213,19 @@ fn main() {
                 );
             };
         }
-
-        tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
-            format_ampm_time(day, "sunrise", args.ampm),
-            format_ampm_time(day, "sunset", args.ampm),
-        );
+        if args.use_nerd_font {
+            tooltip += &format!(
+                " {}  {}\n",
+                format_ampm_time(day, "sunrise", args.ampm),
+                format_ampm_time(day, "sunset", args.ampm),
+            );
+        } else {
+            tooltip += &format!(
+                "🌅 {} 🌇 {}\n",
+                format_ampm_time(day, "sunrise", args.ampm),
+                format_ampm_time(day, "sunset", args.ampm),
+            );
+        }
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
