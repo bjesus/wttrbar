@@ -60,4 +60,7 @@ pub struct Args {
         help = "Changes Icons to use Nerd Font Icons"
     )]
     pub use_nerd_font: bool,
+
+    #[arg(long, short, help = "Shows the wind speed in mph")]
+    pub mph: bool,
 }
