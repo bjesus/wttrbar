@@ -16,7 +16,7 @@ pub fn format_time(time: &str, ampm: bool) -> String {
         } else {
             hour % 12
         };
-        format!("{: <4}", format!("{}{}", hour12, am_or_pm))
+        format!("{: <4}", format!("{} {}", hour12, am_or_pm))
     } else {
         format!("{:02}", hour)
     }
