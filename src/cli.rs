@@ -52,4 +52,12 @@ pub struct Args {
 
     #[arg(value_enum, short, long, help = "language to use")]
     pub lang: Option<Lang>,
+
+    #[arg(
+        long,
+        short,
+        default_value = "false",
+        help = "Changes Icons to use Nerd Font Icons"
+    )]
+    pub use_nerd_font: bool,
 }

@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
+use crate::constants::WEATHER_CODES_NERD_FONT;
 use crate::lang::Lang;
 use crate::ICON_PLACEHOLDER;
 
@@ -58,7 +59,22 @@ pub fn format_chances(hour: &serde_json::Value, lang: &Lang) -> String {
         .join(", ")
 }
 
-pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
+pub fn format_ampm_times(
+    day: &serde_json::Value,
+    ampm: bool,
+    use_nerd_font: bool,
+) -> (String, String) {
+    let sunrise = format_ampm_time(day, "sunrise", ampm, use_nerd_font);
+    let sunset = format_ampm_time(day, "sunset", ampm, use_nerd_font);
+    (sunrise, sunset)
+}
+
+pub fn format_ampm_time(
+    day: &serde_json::Value,
+    key: &str,
+    ampm: bool,
+    _use_nerd_font: bool,
+) -> String {
     if ampm {
         day["astronomy"][0][key].as_str().unwrap().to_string()
     } else {
@@ -72,6 +88,7 @@ pub fn format_indicator(
     weather_conditions: &Value,
     expression: String,
     weather_icon: &&str,
+    use_nerd_font: bool,
 ) -> String {
     if !weather_conditions.is_object() {
         return String::new();
@@ -99,7 +116,23 @@ pub fn format_indicator(
             }
         });
     if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
+        let icon = if use_nerd_font {
+            WEATHER_CODES_NERD_FONT
+                .iter()
+                .find(|(code, _)| {
+                    *code
+                        == weather_conditions["weatherCode"]
+                            .as_str()
+                            .unwrap()
+                            .parse::<i32>()
+                            .unwrap()
+                })
+                .map(|(_, symbol)| symbol)
+                .unwrap()
+        } else {
+            weather_icon
+        };
+        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, icon)
     }
     formatted_indicator
 }

@@ -42,7 +42,7 @@ Assuming `wttrbar` is in your path, it can be used like:
 
 ```json
 "custom/weather": {
-    "format": "{} °",
+    "format": "{}°",
     "tooltip": true,
     "interval": 3600,
     "exec": "wttrbar",
