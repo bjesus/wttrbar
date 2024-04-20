@@ -2,9 +2,8 @@ use chrono::prelude::*;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 
-use crate::constants::WEATHER_CODES_NERD_FONT;
 use crate::lang::Lang;
-use crate::ICON_PLACEHOLDER;
+use crate::{get_weather_icon, ICON_PLACEHOLDER};
 
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();
@@ -100,24 +99,14 @@ pub fn format_indicator(
                     formatted_indicator.replace(condition.0.as_str(), condition_value)
             }
         });
+    let weather_code = weather_conditions["weatherCode"].as_str().unwrap();
+    let weather_icon = if use_nerd_font {
+        get_weather_icon(weather_code, use_nerd_font)
+    } else {
+        weather_icon
+    };
     if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        let icon = if use_nerd_font {
-            WEATHER_CODES_NERD_FONT
-                .iter()
-                .find(|(code, _)| {
-                    *code
-                        == weather_conditions["weatherCode"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<i32>()
-                            .unwrap()
-                })
-                .map(|(_, symbol)| symbol)
-                .unwrap()
-        } else {
-            weather_icon
-        };
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, icon)
+        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
     }
     formatted_indicator
 }
