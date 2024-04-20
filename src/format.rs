@@ -59,22 +59,7 @@ pub fn format_chances(hour: &serde_json::Value, lang: &Lang) -> String {
         .join(", ")
 }
 
-pub fn format_ampm_times(
-    day: &serde_json::Value,
-    ampm: bool,
-    use_nerd_font: bool,
-) -> (String, String) {
-    let sunrise = format_ampm_time(day, "sunrise", ampm, use_nerd_font);
-    let sunset = format_ampm_time(day, "sunset", ampm, use_nerd_font);
-    (sunrise, sunset)
-}
-
-pub fn format_ampm_time(
-    day: &serde_json::Value,
-    key: &str,
-    ampm: bool,
-    _use_nerd_font: bool,
-) -> String {
+pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
     if ampm {
         day["astronomy"][0][key].as_str().unwrap().to_string()
     } else {

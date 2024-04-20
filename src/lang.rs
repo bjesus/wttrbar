@@ -45,29 +45,6 @@ impl Lang {
             Self::BE => "Вільготнасць".to_string(),
         }
     }
-    pub fn sunrise(&self) -> String {
-        match &self {
-            Self::EN => "Sunrise".to_string(),
-            Self::DE => "Sonnenaufgang".to_string(),
-            Self::PL => "Wschód słońca".to_string(),
-            Self::RU => "Восход солнца".to_string(),
-            Self::TR => "Güneş doğumu".to_string(),
-            Self::FR => "Lever du soleil".to_string(),
-            Self::BE => "Суніца падрыхаванне".to_string(),
-        }
-    }
-
-    pub fn sunset(&self) -> String {
-        match &self {
-            Self::EN => "Sunset".to_string(),
-            Self::DE => "Sonnenuntergang".to_string(),
-            Self::PL => "Zachód słońca".to_string(),
-            Self::RU => "Закат солнца".to_string(),
-            Self::TR => "Güneş batımı".to_string(),
-            Self::FR => "Coucher du soleil".to_string(),
-            Self::BE => "Суніца захад".to_string(),
-        }
-    }
     pub fn location(&self) -> String {
         match &self {
             Self::EN => "Location".to_string(),

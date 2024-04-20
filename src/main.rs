@@ -13,9 +13,7 @@ use serde_json::{json, Value};
 
 use crate::cli::Args;
 use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES_DEFAULT, WEATHER_CODES_NERD_FONT};
-use crate::format::{
-    format_ampm_times, format_chances, format_indicator, format_temp, format_time,
-};
+use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
 use crate::lang::Lang;
 
 mod cli;
@@ -216,14 +214,10 @@ fn main() {
             };
         }
 
-        let (sunrise, sunset) = format_ampm_times(day, args.ampm, args.use_nerd_font);
-
         tooltip += &format!(
-            "{}: {} {} {}\n",
-            lang.sunrise(),
-            sunrise,
-            lang.sunset(),
-            sunset
+            "🌅 {} 🌇 {}\n",
+            format_ampm_time(day, "sunrise", args.ampm),
+            format_ampm_time(day, "sunset", args.ampm),
         );
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
