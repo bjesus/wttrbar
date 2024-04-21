@@ -29,7 +29,7 @@ For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/ap
 - `--vertical-view` - shows the icon on the first line and temperature in a new line
 - `--custom-indicator STRING` - optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. For example, `"{ICON}{temp_C}({FeelsLikeC})"` will be transformed to `"text":"🌧️0(-4)"` in the output
 - `--lang LANG` - set language (currently `en`, `de`, `pl`, `tr`, `fr`, `ru`, `zh`, or `be`; submit a PR to add yours)
-
+- `--icon-family STRING` Changes Icon Family (Currently `noto`, `nerd`; submit a PR to add yours)
 e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
 
 ### Icons

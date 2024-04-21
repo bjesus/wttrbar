@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::lang::Lang;
 use crate::ICON_PLACEHOLDER;
+use crate::{WEATHER_CODES_NERD, WEATHER_CODES_NOTO};
 
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();
@@ -68,14 +69,25 @@ pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> Strin
             .to_string()
     }
 }
+
+pub fn get_weather_codes(icon_family: &str) -> &'static [(i32, &'static str)] {
+    match icon_family {
+        "noto" => WEATHER_CODES_NOTO,
+        "nerd" => WEATHER_CODES_NERD,
+        _ => WEATHER_CODES_NOTO,
+    }
+}
+
 pub fn format_indicator(
     weather_conditions: &Value,
     expression: String,
-    weather_icon: &&str,
+    icon_family: &str,
 ) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
+    let weather_codes = get_weather_codes(icon_family);
+
     let default_map = Map::new();
     let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
     let mut formatted_indicator = expression.to_string();
@@ -99,7 +111,19 @@ pub fn format_indicator(
             }
         });
     if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
+        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, {
+            let weather_code = weather_conditions["weatherCode"]
+                .as_str()
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            let weather_icon = weather_codes
+                .iter()
+                .find(|(code, _)| *code == weather_code)
+                .map(|(_, symbol)| symbol)
+                .unwrap();
+            weather_icon
+        });
     }
     formatted_indicator
 }
