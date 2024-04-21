@@ -12,7 +12,10 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES_NERD, WEATHER_CODES_NOTO};
+use crate::constants::{
+    ICON_PLACEHOLDER, MIN_MAX_TEMP_ICONS, SUNRISE_SUNSET_ICONS, WEATHER_CODES_NERD,
+    WEATHER_CODES_NOTO,
+};
 use crate::format::{
     format_ampm_time, format_chances, format_indicator, format_temp, format_time, get_weather_codes,
 };
@@ -88,11 +91,20 @@ fn main() {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES_NOTO
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+
+    let weather_icon = match args.icon_family.as_str() {
+        "noto" => WEATHER_CODES_NOTO
+            .iter()
+            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+            .map(|(_, symbol)| symbol)
+            .unwrap(),
+        "nerd" => WEATHER_CODES_NERD
+            .iter()
+            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+            .map(|(_, symbol)| symbol)
+            .unwrap(),
+        _ => ICON_PLACEHOLDER,
+    };
     let indicator = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -170,49 +182,49 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        if args.icon_family == "nerd" {
-            if args.fahrenheit {
-                tooltip += &format!(
-                    " {}°  {}° ",
-                    day["maxtempF"].as_str().unwrap(),
-                    day["mintempF"].as_str().unwrap(),
-                );
-            } else {
-                tooltip += &format!(
-                    " {}°  {}° ",
-                    day["maxtempC"].as_str().unwrap(),
-                    day["mintempC"].as_str().unwrap(),
-                );
-            };
-        } else if args.icon_family == "noto" {
-            if args.fahrenheit {
-                tooltip += &format!(
-                    "⬆️ {}° ⬇️ {}° ",
-                    day["maxtempF"].as_str().unwrap(),
-                    day["mintempF"].as_str().unwrap(),
-                );
-            } else {
-                tooltip += &format!(
-                    "⬆️ {}° ⬇️ {}° ",
-                    day["maxtempC"].as_str().unwrap(),
-                    day["mintempC"].as_str().unwrap(),
-                );
-            };
+        let icon_family = &args.icon_family;
+        let (min_temp_icon, max_temp_icon) = MIN_MAX_TEMP_ICONS
+            .iter()
+            .find(|&&(family, _)| family == icon_family)
+            .map(|(_, icons)| icons)
+            .unwrap_or(&(ICON_PLACEHOLDER, ICON_PLACEHOLDER));
+
+        if args.fahrenheit {
+            tooltip += &format!(
+                "{} {}° {} {}",
+                min_temp_icon,
+                day["mintempF"].as_str().unwrap(),
+                max_temp_icon,
+                day["maxtempF"].as_str().unwrap()
+            );
+        } else {
+            tooltip += &format!(
+                "{} {}° {} {}",
+                min_temp_icon,
+                day["mintempC"].as_str().unwrap(),
+                max_temp_icon,
+                day["maxtempC"].as_str().unwrap()
+            );
         }
 
-        if args.icon_family == "noto" {
-            tooltip += &format!(
-                "🌅 {} 🌇 {}\n",
-                format_ampm_time(day, "sunrise", args.ampm),
-                format_ampm_time(day, "sunset", args.ampm),
-            );
-        } else if args.icon_family == "nerd" {
-            tooltip += &format!(
-                " {}  {}\n",
-                format_ampm_time(day, "sunrise", args.ampm),
-                format_ampm_time(day, "sunset", args.ampm),
-            );
-        }
+        let (sunrise_icon, sunset_icon) = SUNRISE_SUNSET_ICONS
+            .iter()
+            .find(|&&(family, _)| family == icon_family)
+            .map(|&(_, format)| format)
+            .unwrap();
+
+        let sunrise_format = format!(
+            "{} {}",
+            sunrise_icon,
+            format_ampm_time(day, "sunrise", args.ampm)
+        );
+        let sunset_format = format!(
+            "{} {}",
+            sunset_icon,
+            format_ampm_time(day, "sunset", args.ampm)
+        );
+        tooltip += &format!("{} {}\n", sunrise_format, sunset_format);
+
         let weather_codes = get_weather_codes(&args.icon_family);
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
@@ -248,7 +260,7 @@ fn main() {
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
                 },
-                hour[lang.weather_desc()][0]["value"].as_str().unwrap(),
+                hour[lang.weather_desc()][0]["value"].as_str().unwrap()
             );
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();
