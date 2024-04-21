@@ -80,7 +80,7 @@ fn main() {
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
     let current_condition = &weather["current_condition"][0];
-    let feels_like = if args.fahrenheit {
+    let feels_like = if args.imperial {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
@@ -93,7 +93,7 @@ fn main() {
         .unwrap();
     let text = match args.custom_indicator {
         None => {
-            let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
+            let main_indicator_code = if args.imperial && args.main_indicator == "temp_C" {
                 "temp_F"
             } else {
                 args.main_indicator.as_str()
@@ -114,18 +114,26 @@ fn main() {
         current_condition[lang.weather_desc()][0]["value"]
             .as_str()
             .unwrap(),
-        if args.fahrenheit {
+        if args.imperial {
             current_condition["temp_F"].as_str().unwrap()
         } else {
             current_condition["temp_C"].as_str().unwrap()
         },
     );
     tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
-    tooltip += &format!(
-        "{}: {}Km/h\n",
-        lang.wind(),
-        current_condition["windspeedKmph"].as_str().unwrap()
-    );
+    if args.imperial {
+        tooltip += &format!(
+            "{}: {} Mph\n",
+            lang.wind(),
+            current_condition["windspeedMiles"].as_str().unwrap()
+        );
+    } else {
+        tooltip += &format!(
+            "{}: {} Km/h\n",
+            lang.wind(),
+            current_condition["windspeedKmph"].as_str().unwrap()
+        );
+    }
     tooltip += &format!(
         "{}: {}%\n",
         lang.humidity(),
@@ -161,7 +169,7 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        if args.fahrenheit {
+        if args.imperial {
             tooltip += &format!(
                 "⬆️ {}° ⬇️ {}° ",
                 day["maxtempF"].as_str().unwrap(),
@@ -207,7 +215,7 @@ fn main() {
                             .unwrap())
                     .map(|(_, symbol)| symbol)
                     .unwrap(),
-                if args.fahrenheit {
+                if args.imperial {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
