@@ -94,7 +94,7 @@ fn main() {
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
     let current_condition = &weather["current_condition"][0];
-    let feels_like = if args.fahrenheit {
+    let feels_like = if args.imperial {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
@@ -103,7 +103,7 @@ fn main() {
     let weather_icon = get_weather_icon(weather_code, args.use_nerd_font);
     let text = match args.custom_indicator {
         None => {
-            let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
+            let main_indicator_code = if args.imperial && args.main_indicator == "temp_C" {
                 "temp_F"
             } else {
                 args.main_indicator.as_str()
@@ -129,14 +129,14 @@ fn main() {
         current_condition[lang.weather_desc()][0]["value"]
             .as_str()
             .unwrap(),
-        if args.fahrenheit {
+        if args.imperial {
             current_condition["temp_F"].as_str().unwrap()
         } else {
             current_condition["temp_C"].as_str().unwrap()
         },
     );
     tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
-    if args.mph {
+    if args.imperial {
         tooltip += &format!(
             "{}: {} Mph\n",
             lang.wind(),
@@ -185,7 +185,7 @@ fn main() {
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
         if args.use_nerd_font {
-            if args.fahrenheit {
+            if args.imperial {
                 tooltip += &format!(
                     " {}°  {}° ",
                     day["maxtempF"].as_str().unwrap(),
@@ -199,7 +199,7 @@ fn main() {
                 );
             };
         } else {
-            if args.fahrenheit {
+            if args.imperial {
                 tooltip += &format!(
                     "⬆️ {}° ⬇️ {}° ",
                     day["maxtempF"].as_str().unwrap(),
@@ -247,7 +247,7 @@ fn main() {
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 weather_icon,
-                if args.fahrenheit {
+                if args.imperial {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())

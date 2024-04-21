@@ -47,8 +47,8 @@ pub struct Args {
     #[arg(long, help = "display time in AM/PM format")]
     pub ampm: bool,
 
-    #[arg(long, help = "use fahrenheit instead of celsius")]
-    pub fahrenheit: bool,
+    #[arg(long, help = "Switches metric system to imperial")]
+    pub imperial: bool,
 
     #[arg(value_enum, short, long, help = "language to use")]
     pub lang: Option<Lang>,
@@ -60,7 +60,4 @@ pub struct Args {
         help = "Changes Icons to use Nerd Font Icons"
     )]
     pub use_nerd_font: bool,
-
-    #[arg(long, short, help = "Shows the wind speed in mph")]
-    pub mph: bool,
 }
