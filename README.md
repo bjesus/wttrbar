@@ -50,6 +50,10 @@ Assuming `wttrbar` is in your path, it can be used like:
 },
 ```
 
+## Icons dependencies
+These dependencies are optional but needed if you want to use different icons besides the default one
+- ttf-jetbrains-mono-nerd
+
 ## Old version
 
 This code is based on my [old Python gist](https://gist.github.com/bjesus/f8db49e1434433f78e5200dc403d58a3) that was used for the same purpose.
