@@ -191,7 +191,7 @@ fn main() {
 
         if args.fahrenheit {
             tooltip += &format!(
-                "{} {}° {} {}",
+                "{} {}° {} {}°",
                 min_temp_icon,
                 day["mintempF"].as_str().unwrap(),
                 max_temp_icon,
@@ -199,7 +199,7 @@ fn main() {
             );
         } else {
             tooltip += &format!(
-                "{} {}° {} {}",
+                "{} {}° {} {}°",
                 min_temp_icon,
                 day["mintempC"].as_str().unwrap(),
                 max_temp_icon,
