@@ -92,19 +92,12 @@ fn main() {
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
 
-    let weather_icon = match args.icon_family.as_str() {
-        "noto" => WEATHER_CODES_NOTO
-            .iter()
-            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-            .map(|(_, symbol)| symbol)
-            .unwrap(),
-        "nerd" => WEATHER_CODES_NERD
-            .iter()
-            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-            .map(|(_, symbol)| symbol)
-            .unwrap(),
-        _ => ICON_PLACEHOLDER,
-    };
+    let weather_codes = get_weather_codes(args.icon_family.as_str());
+    let weather_icon = weather_codes
+        .iter()
+        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+        .map(|(_, symbol)| symbol)
+        .unwrap();
     let indicator = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
