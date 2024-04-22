@@ -51,8 +51,7 @@ Assuming `wttrbar` is in your path, it can be used like:
 ```
 
 ## Icons dependencies
-These dependencies are optional but needed if you want to use different icons besides the default one
-- ttf-jetbrains-mono-nerd
+- ttf-jetbrains-mono-nerd (Optional)
 
 ## Old version
 
