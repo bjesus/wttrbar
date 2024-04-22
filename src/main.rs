@@ -98,7 +98,7 @@ fn main() {
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    let indicator = match args.custom_indicator {
+    let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
                 "temp_F"
@@ -121,7 +121,7 @@ fn main() {
         }
         Some(expression) => format_indicator(current_condition, expression, &args.icon_family),
     };
-    data.insert("text", indicator);
+    data.insert("text", text);
 
     let mut tooltip = format!(
         "<b>{}</b> {}°\n",
