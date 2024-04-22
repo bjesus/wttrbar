@@ -214,12 +214,12 @@ fn main() {
             .unwrap();
 
         let sunrise_format = format!(
-            "{} {}",
+            " {} {}",
             sunrise_icon,
             format_ampm_time(day, "sunrise", args.ampm)
         );
         let sunset_format = format!(
-            "{} {}",
+            " {} {}",
             sunset_icon,
             format_ampm_time(day, "sunset", args.ampm)
         );

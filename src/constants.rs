@@ -125,7 +125,7 @@ pub const WEATHER_CODES_NERD: &[(i32, &str)] = &[
 ];
 
 pub const SUNRISE_SUNSET_ICONS: &[(&str, (&str, &str))] =
-    &[("noto", ("🌅 ", "🌇")), ("nerd", (" ", ""))];
+    &[("noto", ("🌅", "🌇")), ("nerd", ("", ""))];
 
 pub const MIN_MAX_TEMP_ICONS: &[(&str, (&str, &str))] =
     &[("noto", ("⬇️ ", "⬆️")), ("nerd", ("", ""))];
