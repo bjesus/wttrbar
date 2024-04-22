@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::lang::Lang;
 use crate::ICON_PLACEHOLDER;
-use crate::{WEATHER_CODES_NERD, WEATHER_CODES_NOTO};
+use crate::*;
 
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();

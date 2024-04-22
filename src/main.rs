@@ -12,10 +12,7 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{
-    ICON_PLACEHOLDER, MIN_MAX_TEMP_ICONS, SUNRISE_SUNSET_ICONS, WEATHER_CODES_NERD,
-    WEATHER_CODES_NOTO,
-};
+use crate::constants::*;
 use crate::format::{
     format_ampm_time, format_chances, format_indicator, format_temp, format_time, get_weather_codes,
 };
