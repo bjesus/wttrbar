@@ -13,9 +13,7 @@ use serde_json::{json, Value};
 
 use crate::cli::Args;
 use crate::constants::*;
-use crate::format::{
-    format_ampm_time, format_chances, format_indicator, format_temp, format_time, get_weather_codes,
-};
+use crate::format::*;
 use crate::lang::Lang;
 
 mod cli;

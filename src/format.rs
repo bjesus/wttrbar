@@ -3,7 +3,6 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 use crate::lang::Lang;
-use crate::ICON_PLACEHOLDER;
 use crate::*;
 
 pub fn format_time(time: &str, ampm: bool) -> String {
