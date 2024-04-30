@@ -85,14 +85,26 @@ fn main() {
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
-    let weather_code = current_condition["weatherCode"].as_str().unwrap();
 
-    let weather_codes = get_weather_codes(args.icon_family.as_str());
-    let weather_icon = weather_codes
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+    let weather_codes = get_weather_codes(&args.icon_family);
+    let weather_icon = match weather_codes {
+        Ok(codes) => {
+            let weather_code = current_condition["weatherCode"]
+                .as_str()
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            codes
+                .iter()
+                .find(|(code, _)| *code == weather_code)
+                .map(|(_, symbol)| symbol)
+                .unwrap_or(&ICON_PLACEHOLDER)
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
+    };
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -213,7 +225,7 @@ fn main() {
         );
         tooltip += &format!("{} {}\n", sunrise_format, sunset_format);
 
-        let weather_codes = get_weather_codes(&args.icon_family);
+        let weather_codes = get_weather_codes(&args.icon_family).unwrap();
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
