@@ -121,11 +121,19 @@ fn main() {
         },
     );
     tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
-    tooltip += &format!(
-        "{}: {}Km/h\n",
-        lang.wind(),
-        current_condition["windspeedKmph"].as_str().unwrap()
-    );
+    if args.mph {
+        tooltip += &format!(
+            "{}: {} mph\n",
+            lang.wind(),
+            current_condition["windspeedMiles"].as_str().unwrap()
+        );
+    } else {
+        tooltip += &format!(
+            "{}: {} km/h\n",
+            lang.wind(),
+            current_condition["windspeedKmph"].as_str().unwrap()
+        );
+    }
     tooltip += &format!(
         "{}: {}%\n",
         lang.humidity(),

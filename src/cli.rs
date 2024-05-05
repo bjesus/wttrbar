@@ -50,6 +50,9 @@ pub struct Args {
     #[arg(long, help = "use fahrenheit instead of celsius")]
     pub fahrenheit: bool,
 
+    #[arg(long, short, help = "use mph instead of km/h for wind speed")]
+    pub mph: bool,
+
     #[arg(value_enum, short, long, help = "language to use")]
     pub lang: Option<Lang>,
 }
