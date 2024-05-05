@@ -26,10 +26,10 @@ For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/ap
 - `--date-format` - defaults to `%Y-%m-%d`, formats the date next to the days. see [reference](https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
 - `--hide-conditions` - show a shorter descrpition next to each hour, like `7° Mist` instead of `7° Mist, Overcast 81%, Sunshine 17%, Frost 15%`
 - `--fahrenheit` - use fahrenheit instead of celsius
+- `--mph` - use mph instead of km/h for wind speed
 - `--vertical-view` - shows the icon on the first line and temperature in a new line
 - `--custom-indicator STRING` - optional expression that will be shown instead of main indicator. current_conditions keys surrounded by {} can be used. For example, `"{ICON}{temp_C}({FeelsLikeC})"` will be transformed to `"text":"🌧️0(-4)"` in the output
 - `--lang LANG` - set language (currently `en`, `de`, `pl`, `tr`, `fr`, `ru`, `zh`, or `be`; submit a PR to add yours)
-- `--mph` - change wind to use MPH instead of KMH
 
 e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
 
