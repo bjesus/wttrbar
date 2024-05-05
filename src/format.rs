@@ -1,9 +1,9 @@
 use chrono::prelude::*;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::lang::Lang;
-use crate::ICON_PLACEHOLDER;
+use crate::*;
 
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();
@@ -68,38 +68,67 @@ pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> Strin
             .to_string()
     }
 }
+
+pub fn get_weather_codes(icon_family: &str) -> Result<&'static [(i32, &'static str)], String> {
+    match icon_family {
+        "noto" => Ok(WEATHER_CODES_NOTO),
+        "nerd" => Ok(WEATHER_CODES_NERD),
+        _ => Err(format!("Invalid icon family: {}", icon_family)),
+    }
+}
+
 pub fn format_indicator(
     weather_conditions: &Value,
     expression: String,
-    weather_icon: &&str,
+    icon_family: &str,
 ) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
-    let default_map = Map::new();
-    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
-    let mut formatted_indicator = expression.to_string();
-    weather_conditions_map
-        .iter()
-        .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
-        .for_each(|condition| {
-            if formatted_indicator.contains(condition.0.as_str()) {
-                let condition_value = if condition.1.is_array() {
-                    condition.1.as_array().and_then(|vec| {
-                        vec[0]
-                            .as_object()
-                            .and_then(|value_map| value_map["value"].as_str())
-                    })
-                } else {
-                    condition.1.as_str()
-                }
-                .unwrap_or("");
-                formatted_indicator =
-                    formatted_indicator.replace(condition.0.as_str(), condition_value)
+
+    match get_weather_codes(icon_family) {
+        Ok(weather_codes) => {
+            let weather_code = weather_conditions["weatherCode"]
+                .as_str()
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            let weather_icon = weather_codes
+                .iter()
+                .find(|(code, _)| *code == weather_code)
+                .map(|(_, symbol)| symbol)
+                .unwrap_or(&ICON_PLACEHOLDER);
+
+            let mut formatted_indicator = expression.to_string();
+            weather_conditions
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
+                .for_each(|condition| {
+                    if formatted_indicator.contains(condition.0.as_str()) {
+                        let condition_value = if condition.1.is_array() {
+                            condition.1.as_array().and_then(|vec| {
+                                vec[0]
+                                    .as_object()
+                                    .and_then(|value_map| value_map["value"].as_str())
+                            })
+                        } else {
+                            condition.1.as_str()
+                        }
+                        .unwrap_or("");
+                        formatted_indicator =
+                            formatted_indicator.replace(condition.0.as_str(), condition_value)
+                    }
+                });
+            if formatted_indicator.contains(ICON_PLACEHOLDER) {
+                formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon);
             }
-        });
-    if formatted_indicator.contains(ICON_PLACEHOLDER) {
-        formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
+            formatted_indicator
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            String::from("")
+        }
     }
-    formatted_indicator
 }

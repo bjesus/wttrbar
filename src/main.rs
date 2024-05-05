@@ -12,8 +12,8 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES};
-use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
+use crate::constants::*;
+use crate::format::*;
 use crate::lang::Lang;
 
 mod cli;
@@ -85,12 +85,26 @@ fn main() {
     } else {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
-    let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+
+    let weather_codes = get_weather_codes(&args.icon_family);
+    let weather_icon = match weather_codes {
+        Ok(codes) => {
+            let weather_code = current_condition["weatherCode"]
+                .as_str()
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            codes
+                .iter()
+                .find(|(code, _)| *code == weather_code)
+                .map(|(_, symbol)| symbol)
+                .unwrap_or(&ICON_PLACEHOLDER)
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
+    };
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -98,14 +112,21 @@ fn main() {
             } else {
                 args.main_indicator.as_str()
             };
-            let indicator = current_condition[main_indicator_code].as_str().unwrap();
             if args.vertical_view {
-                format!("{}\n{}", weather_icon, indicator)
+                format!(
+                    "{}\n{}",
+                    weather_icon,
+                    current_condition[main_indicator_code].as_str().unwrap()
+                )
             } else {
-                format!("{} {}", weather_icon, indicator)
+                format!(
+                    "{} {}",
+                    weather_icon,
+                    current_condition[main_indicator_code].as_str().unwrap()
+                )
             }
         }
-        Some(expression) => format_indicator(current_condition, expression, weather_icon),
+        Some(expression) => format_indicator(current_condition, expression, &args.icon_family),
     };
     data.insert("text", text);
 
@@ -169,25 +190,50 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
+        let icon_family = &args.icon_family;
+        let (min_temp_icon, max_temp_icon) = MIN_MAX_TEMP_ICONS
+            .iter()
+            .find(|&&(family, _)| family == icon_family)
+            .map(|(_, icons)| icons)
+            .unwrap_or(&(ICON_PLACEHOLDER, ICON_PLACEHOLDER));
+
         if args.fahrenheit {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
-                day["maxtempF"].as_str().unwrap(),
+                "{} {}° {} {}°",
+                min_temp_icon,
                 day["mintempF"].as_str().unwrap(),
+                max_temp_icon,
+                day["maxtempF"].as_str().unwrap()
             );
         } else {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
-                day["maxtempC"].as_str().unwrap(),
+                "{} {}° {} {}°",
+                min_temp_icon,
                 day["mintempC"].as_str().unwrap(),
+                max_temp_icon,
+                day["maxtempC"].as_str().unwrap()
             );
-        };
+        }
 
-        tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
-            format_ampm_time(day, "sunrise", args.ampm),
-            format_ampm_time(day, "sunset", args.ampm),
+        let (sunrise_icon, sunset_icon) = SUNRISE_SUNSET_ICONS
+            .iter()
+            .find(|&&(family, _)| family == icon_family)
+            .map(|&(_, format)| format)
+            .unwrap();
+
+        let sunrise_format = format!(
+            " {} {}",
+            sunrise_icon,
+            format_ampm_time(day, "sunrise", args.ampm)
         );
+        let sunset_format = format!(
+            " {} {}",
+            sunset_icon,
+            format_ampm_time(day, "sunset", args.ampm)
+        );
+        tooltip += &format!("{} {}\n", sunrise_format, sunset_format);
+
+        let weather_codes = get_weather_codes(&args.icon_family).unwrap();
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
@@ -202,25 +248,27 @@ fn main() {
                 continue;
             }
 
+            let weather_code = hour["weatherCode"]
+                .as_str()
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            let weather_icon = weather_codes
+                .iter()
+                .find(|(code, _)| *code == weather_code)
+                .map(|(_, symbol)| symbol)
+                .unwrap_or(&ICON_PLACEHOLDER);
+
             let mut tooltip_line = format!(
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _)| *code
-                        == hour["weatherCode"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<i32>()
-                            .unwrap())
-                    .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                weather_icon,
                 if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
                 },
-                hour[lang.weather_desc()][0]["value"].as_str().unwrap(),
+                hour[lang.weather_desc()][0]["value"].as_str().unwrap()
             );
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();

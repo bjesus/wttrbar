@@ -55,4 +55,7 @@ pub struct Args {
 
     #[arg(value_enum, short, long, help = "language to use")]
     pub lang: Option<Lang>,
+
+    #[arg(long, short, default_value = "noto", help = "Changes Icons family")]
+    pub icon_family: String,
 }
