@@ -123,13 +123,13 @@ fn main() {
     tooltip += &format!("{}: {}°\n", lang.feels_like(), feels_like);
     if args.mph {
         tooltip += &format!(
-            "{}: {} Mph\n",
+            "{}: {} mph\n",
             lang.wind(),
             current_condition["windspeedMiles"].as_str().unwrap()
         );
     } else {
         tooltip += &format!(
-            "{}: {} Km/h\n",
+            "{}: {} km/h\n",
             lang.wind(),
             current_condition["windspeedKmph"].as_str().unwrap()
         );
