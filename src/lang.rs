@@ -42,7 +42,7 @@ impl Lang {
     }
     pub fn humidity(&self) -> String {
         match &self {
-            Self::EN => "humidity".to_string(),
+            Self::EN => "Humidity".to_string(),
             Self::DE => "Luftfeuchtigkeit".to_string(),
             Self::PL => "Wilgotność".to_string(),
             Self::RU => "Влажность".to_string(),
