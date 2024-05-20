@@ -11,6 +11,8 @@ pub enum Lang {
     BE,
     ZH,
     ES,
+    PT,
+    IT,
 }
 
 impl Lang {
@@ -25,6 +27,8 @@ impl Lang {
             Self::BE => "be.wttr.in".to_string(),
             Self::ZH => "zh.wttr.in".to_string(),
             Self::ES => "es.wttr.in".to_string(),
+            Self::PT => "pt.wttr.in".to_string(),
+            Self::IT => "it.wttr.in".to_string(),
         }
     }
     pub fn feels_like(&self) -> String {
@@ -38,6 +42,8 @@ impl Lang {
             Self::BE => "Адчуваецца як".to_string(),
             Self::ZH => "体感温度".to_string(),
             Self::ES => "Sensación térmica".to_string(),
+            Self::PT => "Sensação térmica".to_string(),
+            Self::IT => "Sensazione Termica".to_string(),
         }
     }
     pub fn humidity(&self) -> String {
@@ -51,6 +57,8 @@ impl Lang {
             Self::BE => "Вільготнасць".to_string(),
             Self::ZH => "湿度".to_string(),
             Self::ES => "Humedad".to_string(),
+            Self::PT => "Umidade".to_string(),
+            Self::IT => "Umidità".to_string(),
         }
     }
     pub fn location(&self) -> String {
@@ -64,6 +72,8 @@ impl Lang {
             Self::BE => "Месцазнаходжанне".to_string(),
             Self::ZH => "地区".to_string(),
             Self::ES => "Ubicación".to_string(),
+            Self::PT => "Localização".to_string(),
+            Self::IT => "Posizione".to_string(),
         }
     }
     pub fn today(&self) -> String {
@@ -77,6 +87,8 @@ impl Lang {
             Self::BE => "Сёння".to_string(),
             Self::ZH => "今日天气".to_string(),
             Self::ES => "Hoy".to_string(),
+            Self::PT => "Hoje".to_string(),
+            Self::IT => "Oggi".to_string(),
         }
     }
     pub fn tomorrow(&self) -> String {
@@ -90,6 +102,8 @@ impl Lang {
             Self::BE => "Заўтра".to_string(),
             Self::ZH => "明日天气".to_string(),
             Self::ES => "Mañana".to_string(),
+            Self::PT => "Amanhã".to_string(),
+            Self::IT => "Domani".to_string(),
         }
     }
     pub fn fog(&self) -> String {
@@ -103,6 +117,8 @@ impl Lang {
             Self::BE => "Туман".to_string(),
             Self::ZH => "雾".to_string(),
             Self::ES => "Niebla".to_string(),
+            Self::PT => "Nevoeiro".to_string(),
+            Self::IT => "Nebbia".to_string(),
         }
     }
     pub fn frost(&self) -> String {
@@ -116,6 +132,8 @@ impl Lang {
             Self::BE => "Мароз".to_string(),
             Self::ZH => "霜".to_string(),
             Self::ES => "Escarcha".to_string(),
+            Self::PT => "Geada".to_string(),
+            Self::IT => "Gelo".to_string(),
         }
     }
     pub fn overcast(&self) -> String {
@@ -129,6 +147,8 @@ impl Lang {
             Self::BE => "Хмурна".to_string(),
             Self::ZH => "多云".to_string(),
             Self::ES => "Nublado".to_string(),
+            Self::PT => "Nublado".to_string(),
+            Self::IT => "Nuvoloso".to_string(),
         }
     }
     pub fn rain(&self) -> String {
@@ -142,6 +162,8 @@ impl Lang {
             Self::BE => "Дождж".to_string(),
             Self::ZH => "雨".to_string(),
             Self::ES => "Lluvia".to_string(),
+            Self::PT => "Chuva".to_string(),
+            Self::IT => "Pioggia".to_string(),
         }
     }
     pub fn snow(&self) -> String {
@@ -155,6 +177,8 @@ impl Lang {
             Self::BE => "Снег".to_string(),
             Self::ZH => "雪".to_string(),
             Self::ES => "Nieve".to_string(),
+            Self::PT => "Neve".to_string(),
+            Self::IT => "Neve".to_string(),
         }
     }
     pub fn sunshine(&self) -> String {
@@ -168,6 +192,8 @@ impl Lang {
             Self::BE => "Сонечна".to_string(),
             Self::ZH => "晴".to_string(),
             Self::ES => "Soleado".to_string(),
+            Self::PT => "Sol".to_string(),
+            Self::IT => "Sole".to_string(),
         }
     }
     pub fn thunder(&self) -> String {
@@ -181,6 +207,8 @@ impl Lang {
             Self::BE => "Навальніца".to_string(),
             Self::ZH => "雷暴".to_string(),
             Self::ES => "Tormenta".to_string(),
+            Self::PT => "Trovão".to_string(),
+            Self::IT => "Tuono".to_string(),
         }
     }
     pub fn wind(&self) -> String {
@@ -194,6 +222,8 @@ impl Lang {
             Self::BE => "Вецер".to_string(),
             Self::ZH => "风速".to_string(),
             Self::ES => "Viento".to_string(),
+            Self::PT => "Vento".to_string(),
+            Self::IT => "Vento".to_string(),
         }
     }
     pub fn weather_desc(&self) -> String {
@@ -207,6 +237,8 @@ impl Lang {
             Lang::BE => "lang_be".to_string(),
             Lang::ZH => "lang_zh".to_string(),
             Lang::ES => "lang_es".to_string(),
+            Lang::PT => "lang_pt".to_string(),
+            Lang::IT => "lang_it".to_string(),
         }
     }
 }
