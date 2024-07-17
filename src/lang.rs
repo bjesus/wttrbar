@@ -15,6 +15,7 @@ pub enum Lang {
     IT,
     JA,
     UK,
+    SV,
 }
 
 impl Lang {
@@ -33,6 +34,7 @@ impl Lang {
             Self::IT => "it.wttr.in".to_string(),
             Self::JA => "ja.wttr.in".to_string(),
             Self::UK => "uk.wttr.in".to_string(),
+            Self::SV => "sv.wttr.in".to_string(),
         }
     }
     pub fn feels_like(&self) -> String {
@@ -50,6 +52,7 @@ impl Lang {
             Self::IT => "Sensazione Termica".to_string(),
             Self::JA => "体感温度".to_string(),
             Self::UK => "Відчувається як".to_string(),
+            Self::SV => "Känns som".to_string(),
         }
     }
     pub fn humidity(&self) -> String {
@@ -67,6 +70,7 @@ impl Lang {
             Self::IT => "Umidità".to_string(),
             Self::JA => "湿度".to_string(),
             Self::UK => "Вогкість".to_string(),
+            Self::SV => "Luftfuktighet".to_string(),
         }
     }
     pub fn location(&self) -> String {
@@ -84,6 +88,7 @@ impl Lang {
             Self::IT => "Posizione".to_string(),
             Self::JA => "地点".to_string(),
             Self::UK => "Розташування".to_string(),
+            Self::SV => "Plats".to_string(),
         }
     }
     pub fn today(&self) -> String {
@@ -101,6 +106,7 @@ impl Lang {
             Self::IT => "Oggi".to_string(),
             Self::JA => "今日".to_string(),
             Self::UK => "Сьогодні".to_string(),
+            Self::SV => "Idag".to_string(),
         }
     }
     pub fn tomorrow(&self) -> String {
@@ -118,6 +124,7 @@ impl Lang {
             Self::IT => "Domani".to_string(),
             Self::JA => "明日".to_string(),
             Self::UK => "Завтра".to_string(),
+            Self::SV => "Imorgon".to_string(),
         }
     }
     pub fn fog(&self) -> String {
@@ -135,6 +142,7 @@ impl Lang {
             Self::IT => "Nebbia".to_string(),
             Self::JA => "霧".to_string(),
             Self::UK => "Туман".to_string(),
+            Self::SV => "Dimma".to_string(),
         }
     }
     pub fn frost(&self) -> String {
@@ -152,6 +160,7 @@ impl Lang {
             Self::IT => "Gelo".to_string(),
             Self::JA => "霜".to_string(),
             Self::UK => "Мороз".to_string(),
+            Self::SV => "Frost".to_string(),
         }
     }
     pub fn overcast(&self) -> String {
@@ -169,6 +178,7 @@ impl Lang {
             Self::IT => "Nuvoloso".to_string(),
             Self::JA => "曇り".to_string(),
             Self::UK => "Похмуро".to_string(),
+            Self::SV => "Mulet".to_string(),
         }
     }
     pub fn rain(&self) -> String {
@@ -186,6 +196,7 @@ impl Lang {
             Self::IT => "Pioggia".to_string(),
             Self::JA => "雨".to_string(),
             Self::UK => "Дощ".to_string(),
+            Self::SV => "Regn".to_string(),
         }
     }
     pub fn snow(&self) -> String {
@@ -203,6 +214,7 @@ impl Lang {
             Self::IT => "Neve".to_string(),
             Self::JA => "雪".to_string(),
             Self::UK => "Сніг".to_string(),
+            Self::SV => "Snö".to_string(),
         }
     }
     pub fn sunshine(&self) -> String {
@@ -220,6 +232,7 @@ impl Lang {
             Self::IT => "Sole".to_string(),
             Self::JA => "晴れ".to_string(),
             Self::UK => "Сонячно".to_string(),
+            Self::SV => "Solsken".to_string(),
         }
     }
     pub fn thunder(&self) -> String {
@@ -237,6 +250,7 @@ impl Lang {
             Self::IT => "Tuono".to_string(),
             Self::JA => "雷".to_string(),
             Self::UK => "Гроза".to_string(),
+            Self::SV => "Åska".to_string(),
         }
     }
     pub fn wind(&self) -> String {
@@ -254,6 +268,7 @@ impl Lang {
             Self::IT => "Vento".to_string(),
             Self::JA => "風速".to_string(),
             Self::UK => "Вітер".to_string(),
+            Self::SV => "Vind".to_string(),
         }
     }
     pub fn weather_desc(&self) -> String {
@@ -271,6 +286,7 @@ impl Lang {
             Lang::IT => "lang_it".to_string(),
             Lang::JA => "lang_ja".to_string(),
             Lang::UK => "lang_uk".to_string(),
+            Lang::SV => "lang_sv".to_string(),
         }
     }
 }
