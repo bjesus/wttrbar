@@ -37,7 +37,11 @@ fn main() {
         lang.wttr_in_subdomain(),
         location
     );
-    let cachefile = format!("/tmp/wttrbar-{}.json", location);
+    let cachefile = format!(
+        "/tmp/wttrbar-{}-{}.json",
+        location,
+        lang.wttr_in_subdomain()
+    );
 
     let mut iterations = 0;
     let threshold = 20;
