@@ -68,7 +68,7 @@ fn main() {
                     thread::sleep(time::Duration::from_millis(500 * iterations));
 
                     if iterations == threshold {
-                        println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"cannot access wttr.in\"}}");
+                        println!("{{\"text\":\"⛓️‍󰚤 \", \"tooltip\":\"cannot access wttr.in\"}}");
                         exit(0)
                     }
                 }
@@ -175,20 +175,20 @@ fn main() {
 
         if args.fahrenheit {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "⮝ {}°⮟ {}° ",
                 day["maxtempF"].as_str().unwrap(),
                 day["mintempF"].as_str().unwrap(),
             );
         } else {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+                "⮝ {}°⮟ {}° ",
                 day["maxtempC"].as_str().unwrap(),
                 day["mintempC"].as_str().unwrap(),
             );
         };
 
         tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
+            " {}  {}\n",
             format_ampm_time(day, "sunrise", args.ampm),
             format_ampm_time(day, "sunset", args.ampm),
         );
