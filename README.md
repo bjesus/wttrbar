@@ -18,6 +18,56 @@ For Arch Linux, use the [AUR](https://aur.archlinux.org/packages/wttrbar) packag
 
 For NixOS, use the [NixPkg](https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/misc/wttrbar/default.nix) package.
 
+### Nix
+
+Repository provides a flake that contains an overlay and devShell for those wanting to use latest unreleased commits or contribute.
+
+**Option 1: Using `nix run` (Easiest):**
+
+```bash
+nix run github:bjesus/wttrbar
+```
+
+**Option 2: Adding as a Flake Input:**
+
+In your system's Nix configuration (e.g., ~/.config/nixpkgs/flake.nix or
+~/.config/nixpkgs/home.nix), add the following:
+
+```nix
+    inputs = {
+      nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";  # Or your preferred channel
+      wttrbar.url = "github:bjesus/wttrbar";
+    };
+
+    outputs = { self, nixpkgs, wttrbar }: {
+      # ... your other configuration ...
+
+      # Add to your system packages or devShell if you want to make it available system-wide
+      packages = with nixpkgs; [
+        wttrbar.packages.${system}.default
+      ];
+
+      # Or, use in a devShell:
+      devShells.default = nixpkgs.mkShell {
+        nativeBuildInputs = [ wttrbar.packages.${system}.default ];
+      };
+    };
+```
+
+**Option 3: Build and run locally:**
+
+```bash
+nix build .#wttrbar && ./result/bin/wttrbar
+```
+
+
+### Enter Nix Shell:
+
+```bash
+nix develop
+```
+
+
 ## Usage
 
 - `--ampm` - display time in AM/PM format
