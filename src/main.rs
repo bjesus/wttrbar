@@ -62,7 +62,13 @@ fn main() {
     } else {
         loop {
             match client.get(&weather_url).send() {
-                Ok(response) => break response.json::<Value>().unwrap(),
+                Ok(response) => match response.json::<Value>() {
+                    Ok(json) => break json,
+                    Err(_) => {
+                        println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"invalid wttr.in response\"}}");
+                        exit(0)
+                    }
+                },
                 Err(_) => {
                     iterations += 1;
                     thread::sleep(time::Duration::from_millis(500 * iterations));
