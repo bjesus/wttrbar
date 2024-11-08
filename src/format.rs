@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::lang::Lang;
@@ -70,16 +70,23 @@ pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> Strin
 }
 pub fn format_indicator(
     weather_conditions: &Value,
+    area: &Value,
     expression: String,
     weather_icon: &&str,
 ) -> String {
     if !weather_conditions.is_object() {
         return String::new();
     }
-    let default_map = Map::new();
-    let weather_conditions_map = weather_conditions.as_object().unwrap_or(&default_map);
+
+    let (weather_map, area_map) = match (weather_conditions.as_object(), area.as_object()) {
+        (Some(w), Some(a)) => (w, a),
+        _ => return String::new(),
+    };
+    let mut combined_map = weather_map.clone();
+    combined_map.extend(area_map.clone());
+
     let mut formatted_indicator = expression.to_string();
-    weather_conditions_map
+    combined_map
         .iter()
         .map(|condition| ("{".to_owned() + condition.0 + "}", condition.1))
         .for_each(|condition| {

@@ -90,6 +90,7 @@ fn main() {
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
     let current_condition = &weather["current_condition"][0];
+    let nearest_area = &weather["nearest_area"][0];
     let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
     } else {
@@ -115,7 +116,9 @@ fn main() {
                 format!("{} {}", weather_icon, indicator)
             }
         }
-        Some(expression) => format_indicator(current_condition, expression, weather_icon),
+        Some(expression) => {
+            format_indicator(current_condition, nearest_area, expression, weather_icon)
+        }
     };
     data.insert("text", text);
 
