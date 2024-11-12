@@ -161,6 +161,19 @@ fn main() {
         nearest_area["country"][0]["value"].as_str().unwrap()
     );
 
+    if args.observation_time {
+        if let Some(obs_time) = current_condition["observation_time"].as_str() {
+            if let Ok(time) = NaiveTime::parse_from_str(obs_time, "%I:%M %p") {
+                let formatted_time = if args.ampm {
+                    obs_time.to_string()
+                } else {
+                    time.format("%H:%M").to_string()
+                };
+                tooltip += &format!("{}: {}\n", lang.observation_time(), formatted_time);
+            }
+        }
+    }
+
     let now = Local::now();
 
     let today = Local::now().date_naive();
