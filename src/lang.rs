@@ -37,6 +37,24 @@ impl Lang {
             Self::SV => "sv.wttr.in".to_string(),
         }
     }
+    pub fn observation_time(&self) -> String {
+        match &self {
+            Self::EN => "Observed at".to_string(),
+            Self::DE => "Beobachtet um".to_string(),
+            Self::PL => "Zaobserwowano o".to_string(),
+            Self::RU => "Наблюдается в".to_string(),
+            Self::TR => "Gözlemlendi".to_string(),
+            Self::FR => "Observé à".to_string(),
+            Self::BE => "Назірана ў".to_string(),
+            Self::ZH => "观察时间".to_string(),
+            Self::ES => "Observado en".to_string(),
+            Self::PT => "Observado em".to_string(),
+            Self::IT => "Osservato a".to_string(),
+            Self::JA => "で観察されました".to_string(),
+            Self::UK => "Спостерігається в".to_string(),
+            Self::SV => "Observerat vid".to_string(),
+        }
+    }
     pub fn feels_like(&self) -> String {
         match &self {
             Self::EN => "Feels Like".to_string(),
