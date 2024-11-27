@@ -304,6 +304,14 @@ fn main() {
     }
     data.insert("tooltip", tooltip);
 
+    let css_class = current_condition[lang.weather_desc()][0]["value"]
+        .as_str()
+        .unwrap()
+        .to_string()
+        .to_lowercase();
+
+    data.insert("class", css_class);
+
     let json_data = json!(data);
     println!("{}", json_data);
 }
