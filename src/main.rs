@@ -205,24 +205,49 @@ fn main() {
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
         if args.fahrenheit {
+            if args.nerd {
+                tooltip += &format!(
+                    "󰖜 {}° 󰖛 {}° ",
+                    day["maxtempF"].as_str().unwrap(),
+                    day["mintempF"].as_str().unwrap(),
+                );
+            } else {
+                tooltip += &format!(
+                    "⬆️ {}° ⬇️ {}° ",
+                    day["maxtempF"].as_str().unwrap(),
+                    day["mintempF"].as_str().unwrap(),
+                );
+            }
+        } else {
+            if args.nerd {
+                tooltip += &format!(
+                    "󰖜 {}° 󰖛 {}° ",
+                    day["maxtempF"].as_str().unwrap(),
+                    day["mintempF"].as_str().unwrap(),
+                );
+            } else {
+                tooltip += &format!(
+                    "⬆️ {}° ⬇️ {}° ",
+                    day["maxtempF"].as_str().unwrap(),
+                    day["mintempF"].as_str().unwrap(),
+                );
+            }
+        };
+
+        if args.nerd {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
-                day["maxtempF"].as_str().unwrap(),
-                day["mintempF"].as_str().unwrap(),
+                "󰖜 {} 󰖛 {}\n",
+                format_ampm_time(day, "sunrise", args.ampm),
+                format_ampm_time(day, "sunset", args.ampm),
             );
         } else {
             tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
-                day["maxtempC"].as_str().unwrap(),
-                day["mintempC"].as_str().unwrap(),
+                "🌅 {} 🌇 {}\n",
+                format_ampm_time(day, "sunrise", args.ampm),
+                format_ampm_time(day, "sunset", args.ampm),
             );
-        };
+        }
 
-        tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
-            format_ampm_time(day, "sunrise", args.ampm),
-            format_ampm_time(day, "sunset", args.ampm),
-        );
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
@@ -240,7 +265,8 @@ fn main() {
             let mut tooltip_line = format!(
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
-                WEATHER_CODES
+                if args.nerd {
+                    WEATHER_CODES_NERD
                     .iter()
                     .find(|(code, _)| *code
                         == hour["weatherCode"]
@@ -249,7 +275,19 @@ fn main() {
                             .parse::<i32>()
                             .unwrap())
                     .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                    .unwrap()
+                } else {
+                    WEATHER_CODES
+                        .iter()
+                        .find(|(code, _)| *code
+                            == hour["weatherCode"]
+                                .as_str()
+                                .unwrap()
+                                .parse::<i32>()
+                                .unwrap())
+                        .map(|(_, symbol)| symbol)
+                        .unwrap()
+                },
                 if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
