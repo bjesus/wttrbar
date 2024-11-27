@@ -38,8 +38,6 @@ e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
 
 To display the weather icons correctly, you will need to have a font that supports emojis installed. The screenshot uses [Noto Emoji](https://github.com/googlefonts/noto-emoji), but you can use [other fonts](https://wiki.archlinux.org/title/fonts#Emoji_and_symbols) too.
 
-With the `--nerd` argument the emojis will be replaced by [nerd font](https://www.nerdfonts.com/) symbols.
-
 ## Waybar configuration
 
 Assuming `wttrbar` is in your path, it can be used like:
