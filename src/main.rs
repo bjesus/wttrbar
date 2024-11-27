@@ -12,7 +12,7 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES};
+use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES, WEATHER_CODES_NERD};
 use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
 use crate::lang::Lang;
 
@@ -97,11 +97,20 @@ fn main() {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+
+    let weather_icon = if args.nerd {
+        WEATHER_CODES_NERD
+            .iter()
+            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+            .map(|(_, symbol)| symbol)
+        
+    } else {
+        WEATHER_CODES
+            .iter()
+            .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+            .map(|(_, symbol)| symbol)
+    }.unwrap();
+    
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {

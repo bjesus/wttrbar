@@ -47,6 +47,9 @@ pub struct Args {
     #[arg(long, help = "display time in AM/PM format")]
     pub ampm: bool,
 
+    #[arg(long, help = "use nerd font symbols instead of emojis")]
+    pub nerd: bool,
+
     #[arg(long, help = "use fahrenheit instead of celsius")]
     pub fahrenheit: bool,
 
