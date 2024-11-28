@@ -198,16 +198,10 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        let max_temp = if args.fahrenheit {
-            day["maxtempF"].as_str().unwrap()
+        let (max_temp, min_temp) = if args.fahrenheit {
+            (day["maxtempF"].as_str().unwrap(), day["mintempF"].as_str().unwrap())
         } else {
-            day["maxtempC"].as_str().unwrap()
-        };
-
-        let min_temp = if args.fahrenheit {
-            day["mintempF"].as_str().unwrap()
-        } else {
-            day["mintempC"].as_str().unwrap()
+            (day["maxtempC"].as_str().unwrap(), day["mintempC"].as_str().unwrap())
         };
 
         tooltip += &format!(
