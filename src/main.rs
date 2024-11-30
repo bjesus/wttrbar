@@ -261,13 +261,11 @@ fn main() {
     let css_class = current_condition[lang.weather_desc()][0]["value"]
         .as_str()
         .unwrap()
-        .to_string()
         .to_lowercase()
-        .split(",")
-        .collect::<Vec<_>>()[0]
-        .to_string()
-        .replace(" ", "_");
-
+        .split(',')
+        .next()
+        .map(|s| s.trim().replace(' ', "_"))
+        .unwrap_or_default();
     data.insert("class", css_class);
 
     let json_data = json!(data);
