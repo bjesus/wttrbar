@@ -238,10 +238,15 @@ fn main() {
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 if args.nerd { WEATHER_CODES_NERD } else { WEATHER_CODES }
-                    .iter()
-                    .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-                    .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                .iter()
+                .find(|(code, _)| *code
+                    == hour["weatherCode"]
+                        .as_str()
+                        .unwrap()
+                        .parse::<i32>()
+                        .unwrap())
+                .map(|(_, symbol)| symbol)
+                .unwrap(),
                 if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
