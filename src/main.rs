@@ -98,16 +98,17 @@ fn main() {
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
 
-    let weather_codes = if args.nerd {
-        WEATHER_CODES_NERD
-    } else {
-        WEATHER_CODES
-    };
-    let weather_icon = weather_codes
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+    let weather_icon = {
+        if args.nerd {
+            WEATHER_CODES_NERD
+        } else {
+            WEATHER_CODES
+        }
+    }
+    .iter()
+    .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+    .map(|(_, symbol)| symbol)
+    .unwrap();
 
     let text = match args.custom_indicator {
         None => {
