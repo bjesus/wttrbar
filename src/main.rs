@@ -98,13 +98,17 @@ fn main() {
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
 
-    let weather_codes = if args.nerd { WEATHER_CODES_NERD } else { WEATHER_CODES };
+    let weather_codes = if args.nerd {
+        WEATHER_CODES_NERD
+    } else {
+        WEATHER_CODES
+    };
     let weather_icon = weather_codes
         .iter()
         .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
         .map(|(_, symbol)| symbol)
         .unwrap();
-    
+
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -199,9 +203,15 @@ fn main() {
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
         let (max_temp, min_temp) = if args.fahrenheit {
-            (day["maxtempF"].as_str().unwrap(), day["mintempF"].as_str().unwrap())
+            (
+                day["maxtempF"].as_str().unwrap(),
+                day["mintempF"].as_str().unwrap(),
+            )
         } else {
-            (day["maxtempC"].as_str().unwrap(), day["mintempC"].as_str().unwrap())
+            (
+                day["maxtempC"].as_str().unwrap(),
+                day["mintempC"].as_str().unwrap(),
+            )
         };
 
         tooltip += &format!(
@@ -213,10 +223,10 @@ fn main() {
         );
 
         tooltip += &format!(
-            "{} {} {} {}\n", 
+            "{} {} {} {}\n",
             if args.nerd { "󰖜" } else { "🌅" },
             format_ampm_time(day, "sunrise", args.ampm),
-            if args.nerd { "󰖛" } else { "🌇" }, 
+            if args.nerd { "󰖛" } else { "🌇" },
             format_ampm_time(day, "sunset", args.ampm)
         );
 
@@ -237,7 +247,11 @@ fn main() {
             let mut tooltip_line = format!(
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
-                if args.nerd { WEATHER_CODES_NERD } else { WEATHER_CODES }
+                if args.nerd {
+                    WEATHER_CODES_NERD
+                } else {
+                    WEATHER_CODES
+                }
                 .iter()
                 .find(|(code, _)| *code
                     == hour["weatherCode"]
