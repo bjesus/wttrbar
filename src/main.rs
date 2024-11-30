@@ -263,6 +263,9 @@ fn main() {
         .unwrap()
         .to_string()
         .to_lowercase()
+        .split(",")
+        .collect::<Vec<_>>()[0]
+        .to_string()
         .replace(" ", "_");
 
     data.insert("class", css_class);
