@@ -12,7 +12,7 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES};
+use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES, WEATHER_CODES_NERD};
 use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
 use crate::lang::Lang;
 
@@ -97,11 +97,19 @@ fn main() {
         current_condition["FeelsLikeC"].as_str().unwrap()
     };
     let weather_code = current_condition["weatherCode"].as_str().unwrap();
-    let weather_icon = WEATHER_CODES
-        .iter()
-        .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
-        .map(|(_, symbol)| symbol)
-        .unwrap();
+
+    let weather_icon = {
+        if args.nerd {
+            WEATHER_CODES_NERD
+        } else {
+            WEATHER_CODES
+        }
+    }
+    .iter()
+    .find(|(code, _)| *code == weather_code.parse::<i32>().unwrap())
+    .map(|(_, symbol)| symbol)
+    .unwrap();
+
     let text = match args.custom_indicator {
         None => {
             let main_indicator_code = if args.fahrenheit && args.main_indicator == "temp_C" {
@@ -195,25 +203,34 @@ fn main() {
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
 
-        if args.fahrenheit {
-            tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+        let (max_temp, min_temp) = if args.fahrenheit {
+            (
                 day["maxtempF"].as_str().unwrap(),
                 day["mintempF"].as_str().unwrap(),
-            );
+            )
         } else {
-            tooltip += &format!(
-                "⬆️ {}° ⬇️ {}° ",
+            (
                 day["maxtempC"].as_str().unwrap(),
                 day["mintempC"].as_str().unwrap(),
-            );
+            )
         };
 
         tooltip += &format!(
-            "🌅 {} 🌇 {}\n",
-            format_ampm_time(day, "sunrise", args.ampm),
-            format_ampm_time(day, "sunset", args.ampm),
+            "{} {}° {} {}° ",
+            if args.nerd { "󰳡" } else { "⬆️" },
+            max_temp,
+            if args.nerd { "󰳛" } else { "⬇️" },
+            min_temp
         );
+
+        tooltip += &format!(
+            "{} {} {} {}\n",
+            if args.nerd { "󰖜" } else { "🌅" },
+            format_ampm_time(day, "sunrise", args.ampm),
+            if args.nerd { "󰖛" } else { "🌇" },
+            format_ampm_time(day, "sunset", args.ampm)
+        );
+
         for hour in day["hourly"].as_array().unwrap() {
             let hour_time = hour["time"].as_str().unwrap();
             let formatted_hour_time = if hour_time.len() >= 2 {
@@ -231,16 +248,20 @@ fn main() {
             let mut tooltip_line = format!(
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
-                WEATHER_CODES
-                    .iter()
-                    .find(|(code, _)| *code
-                        == hour["weatherCode"]
-                            .as_str()
-                            .unwrap()
-                            .parse::<i32>()
-                            .unwrap())
-                    .map(|(_, symbol)| symbol)
-                    .unwrap(),
+                if args.nerd {
+                    WEATHER_CODES_NERD
+                } else {
+                    WEATHER_CODES
+                }
+                .iter()
+                .find(|(code, _)| *code
+                    == hour["weatherCode"]
+                        .as_str()
+                        .unwrap()
+                        .parse::<i32>()
+                        .unwrap())
+                .map(|(_, symbol)| symbol)
+                .unwrap(),
                 if args.fahrenheit {
                     format_temp(hour["FeelsLikeF"].as_str().unwrap())
                 } else {
@@ -256,6 +277,16 @@ fn main() {
         }
     }
     data.insert("tooltip", tooltip);
+
+    let css_class = current_condition[lang.weather_desc()][0]["value"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .split(',')
+        .next()
+        .map(|s| s.trim().replace(' ', "_"))
+        .unwrap_or_default();
+    data.insert("class", css_class);
 
     let json_data = json!(data);
     println!("{}", json_data);

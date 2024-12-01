@@ -24,6 +24,7 @@ For NixOS, use the [NixPkg](https://search.nixos.org/packages?channel=24.05&show
 - `--location STRING` - pass a specific location to wttr.in
 - `--main-indicator` - decide which [`current_conditions` key](https://wttr.in/?format=j1) will be shown on waybar. defaults to `temp_C`
 - `--date-format` - defaults to `%Y-%m-%d`, formats the date next to the days. see [reference](https://docs.rs/chrono/latest/chrono/format/strftime/index.html)
+- `--nerd` - use [nerd font](https://www.nerdfonts.com/) symbols instead of emojis
 - `--hide-conditions` - show a shorter descrpition next to each hour, like `7° Mist` instead of `7° Mist, Overcast 81%, Sunshine 17%, Frost 15%`
 - `--fahrenheit` - use fahrenheit instead of celsius
 - `--mph` - use mph instead of km/h for wind speed
