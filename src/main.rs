@@ -12,7 +12,7 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES, WEATHER_CODES_NERD};
+use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES, WEATHER_CODES_NERD, WEATHER_CODES_NIGHT_NERD};
 use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
 use crate::lang::Lang;
 
@@ -89,6 +89,14 @@ fn main() {
         file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
+
+    let now = Local::now();
+    let today = now.date_naive();
+    let current_time = now.time();
+    let sunrise_today = NaiveTime::parse_from_str(&weather["weather"][0]["astronomy"][0]["sunrise"].as_str().unwrap(), "%I:%M %p").unwrap();
+    let sunset_today = NaiveTime::parse_from_str(&weather["weather"][0]["astronomy"][0]["sunset"].as_str().unwrap(), "%I:%M %p").unwrap();
+    let is_day = sunrise_today <= current_time && sunset_today > current_time;
+
     let current_condition = &weather["current_condition"][0];
     let nearest_area = &weather["nearest_area"][0];
     let feels_like = if args.fahrenheit {
@@ -100,7 +108,11 @@ fn main() {
 
     let weather_icon = {
         if args.nerd {
-            WEATHER_CODES_NERD
+            if is_day {
+                WEATHER_CODES_NERD
+            } else {
+                WEATHER_CODES_NIGHT_NERD
+            }
         } else {
             WEATHER_CODES
         }
@@ -182,9 +194,6 @@ fn main() {
         }
     }
 
-    let now = Local::now();
-
-    let today = Local::now().date_naive();
     let mut forecast = weather["weather"].as_array().unwrap().clone();
     forecast.retain(|item| {
         let item_date =
@@ -223,6 +232,8 @@ fn main() {
             min_temp
         );
 
+        let sunrise = NaiveTime::parse_from_str(day["astronomy"][0]["sunrise"].as_str().unwrap(), "%I:%M %p").unwrap();
+        let sunset = NaiveTime::parse_from_str(day["astronomy"][0]["sunset"].as_str().unwrap(), "%I:%M %p").unwrap();
         tooltip += &format!(
             "{} {} {} {}\n",
             if args.nerd { "󰖜" } else { "🌅" },
@@ -238,6 +249,10 @@ fn main() {
             } else {
                 hour_time.to_string()
             };
+
+            let hour_naive_time = NaiveTime::parse_from_str(format!("{}:00", &formatted_hour_time).as_str(), "%k:%M").unwrap();
+            let is_day = sunrise <= hour_naive_time && sunset > hour_naive_time;
+
             if i == 0
                 && now.hour() >= 2
                 && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
@@ -249,7 +264,11 @@ fn main() {
                 "{} {} {} {}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 if args.nerd {
-                    WEATHER_CODES_NERD
+                    if is_day {
+                        WEATHER_CODES_NERD
+                    } else {
+                        WEATHER_CODES_NIGHT_NERD
+                    }
                 } else {
                     WEATHER_CODES
                 }
