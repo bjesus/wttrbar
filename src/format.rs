@@ -5,6 +5,16 @@ use std::collections::HashMap;
 use crate::lang::Lang;
 use crate::ICON_PLACEHOLDER;
 
+pub fn extract_hour_time(hour: &serde_json::Value) -> NaiveTime {
+    let hour_int = hour.as_str().unwrap().parse::<u32>().unwrap() / 100;
+
+    let hour_time = NaiveTime::parse_from_str(
+        format!("{}:00", &hour_int).as_str(),
+        "%k:%M"
+    ).unwrap();
+    return hour_time
+}
+
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();
 
@@ -58,16 +68,19 @@ pub fn format_chances(hour: &serde_json::Value, lang: &Lang) -> String {
         .join(", ")
 }
 
-pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> String {
+pub fn extract_day_data(day: &serde_json::Value, key: &str) -> NaiveTime {
+    NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
+        .unwrap()
+}
+
+pub fn format_ampm_time(time: NaiveTime, ampm: bool) -> String {
     if ampm {
-        day["astronomy"][0][key].as_str().unwrap().to_string()
+        time.format("%I:%M %p").to_string()
     } else {
-        NaiveTime::parse_from_str(day["astronomy"][0][key].as_str().unwrap(), "%I:%M %p")
-            .unwrap()
-            .format("%H:%M")
-            .to_string()
+        time.format("%H:%M").to_string()
     }
 }
+
 pub fn format_indicator(
     weather_conditions: &Value,
     area: &Value,
