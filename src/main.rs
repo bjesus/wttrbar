@@ -253,9 +253,9 @@ fn main() {
             let hour_naive_time = NaiveTime::parse_from_str(format!("{}:00", &formatted_hour_time).as_str(), "%k:%M").unwrap();
             let is_day = sunrise <= hour_naive_time && sunset > hour_naive_time;
 
+            // If today only print out most recent hr to end of day
             if i == 0
-                && now.hour() >= 2
-                && formatted_hour_time.parse::<u32>().unwrap() < now.hour() - 2
+                && formatted_hour_time.parse::<i32>().unwrap() < now.hour() as i32 - 2
             {
                 continue;
             }
