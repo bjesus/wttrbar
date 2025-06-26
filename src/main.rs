@@ -6,7 +6,7 @@ use std::process::exit;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use chrono::prelude::*;
+use chrono::{Locale, NaiveDate, NaiveTime, Local, Timelike};
 use clap::Parser;
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
@@ -201,7 +201,8 @@ fn main() {
             tooltip += &format!("{}, ", lang.tomorrow());
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
-        tooltip += &format!("{}</b>\n", date.format(args.date_format.as_str()));
+        let locale = Locale::try_from(lang.locale_str().as_str()).unwrap_or(Locale::en_US);
+        tooltip += &format!("{}</b>\n", date.format_localized(args.date_format.as_str(), locale));
 
         let (max_temp, min_temp) = if args.fahrenheit {
             (

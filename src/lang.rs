@@ -307,4 +307,23 @@ impl Lang {
             Lang::SV => "lang_sv".to_string(),
         }
     }
+
+    pub fn locale_str(&self) -> String {
+        match &self {
+            Self::EN => "en_US".to_string(),
+            Self::DE => "de_DE".to_string(),
+            Self::PL => "pl_PL".to_string(),
+            Self::RU => "ru_RU".to_string(),
+            Self::TR => "tr_TR".to_string(),
+            Self::FR => "fr_FR".to_string(),
+            Self::BE => "be_BY".to_string(),
+            Self::ZH => "zh_CN".to_string(),
+            Self::ES => "es_ES".to_string(),
+            Self::PT => "pt_PT".to_string(),
+            Self::IT => "it_IT".to_string(),
+            Self::JA => "ja_JP".to_string(),
+            Self::UK => "uk_UA".to_string(),
+            Self::SV => "sv_SE".to_string(),
+        }
+    }
 }
