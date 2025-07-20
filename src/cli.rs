@@ -3,7 +3,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author = "Yo'av Moshe",
-version = None,
+version,
 about = "A simple but detailed weather indicator for Waybar using wttr.in",
 long_about = None)
 ]
