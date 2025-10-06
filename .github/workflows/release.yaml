@@ -1,6 +1,7 @@
 on:
   release:
     types: [created]
+  workflow_dispatch: {}
 
 jobs:
   release:
@@ -10,14 +11,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-unknown-linux-musl]
+        target: [x86_64-unknown-linux-gnu]
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          TOOLCHAIN_VERSION: stable
-          EXTRA_FILES: "README.md LICENSE"
+          targets: ${{ matrix.target }}
+      - name: Build (release)
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Package artifact
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/wttrbar dist/wttrbar 
+          cp README.md dist/README.md
+          cp LICENSE dist/LICENSE
+      - name: Upload artifact (manual/test)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wttrbar-${{ matrix.target }}
+          path: dist/*
+      - name: Attach to GitHub Release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/wttrbar-${{ matrix.target }}
+            dist/README.md
+            dist/LICENSE
