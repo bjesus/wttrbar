@@ -37,6 +37,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/wttrbar-${{ matrix.target }}
+            dist/wttrbar
             dist/README.md
             dist/LICENSE
