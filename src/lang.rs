@@ -18,6 +18,7 @@ pub enum Lang {
     SV,
     DA,
     CS,
+    SK,
 }
 
 impl Lang {
@@ -39,6 +40,7 @@ impl Lang {
             Self::SV => "sv.wttr.in".to_string(),
             Self::DA => "da.wttr.in".to_string(),
             Self::CS => "cs.wttr.in".to_string(),
+            Self::SK => "sk.wttr.in".to_string(),
         }
     }
     pub fn observation_time(&self) -> String {
@@ -59,6 +61,7 @@ impl Lang {
             Self::SV => "Observerat vid".to_string(),
             Self::DA => "Observeret kl".to_string(),
             Self::CS => "Změřeno v".to_string(),
+            Self::SK => "Zmerané v".to_string(),
         }
     }
     pub fn feels_like(&self) -> String {
@@ -79,6 +82,7 @@ impl Lang {
             Self::SV => "Känns som".to_string(),
             Self::DA => "Føles som".to_string(),
             Self::CS => "Pocitově".to_string(),
+            Self::SK => "Pocitovo".to_string(),
         }
     }
     pub fn humidity(&self) -> String {
@@ -99,6 +103,7 @@ impl Lang {
             Self::SV => "Luftfuktighet".to_string(),
             Self::DA => "Luftfugtighed".to_string(),
             Self::CS => "Vlhkost".to_string(),
+            Self::SK => "Vlhkosť".to_string(),
         }
     }
     pub fn location(&self) -> String {
@@ -119,6 +124,7 @@ impl Lang {
             Self::SV => "Plats".to_string(),
             Self::DA => "Placering".to_string(),
             Self::CS => "Lokalita".to_string(),
+            Self::SK => "Lokalita".to_string(),
         }
     }
     pub fn today(&self) -> String {
@@ -139,6 +145,7 @@ impl Lang {
             Self::SV => "Idag".to_string(),
             Self::DA => "I dag".to_string(),
             Self::CS => "Dnes".to_string(),
+            Self::SK => "Dnes".to_string(),
         }
     }
     pub fn tomorrow(&self) -> String {
@@ -159,6 +166,7 @@ impl Lang {
             Self::SV => "Imorgon".to_string(),
             Self::DA => "I morgen".to_string(),
             Self::CS => "Zítra".to_string(),
+            Self::SK => "Zajtra".to_string(),
         }
     }
     pub fn fog(&self) -> String {
@@ -179,6 +187,7 @@ impl Lang {
             Self::SV => "Dimma".to_string(),
             Self::DA => "Tåge".to_string(),
             Self::CS => "Mlha".to_string(),
+            Self::SK => "Hmla".to_string(),
         }
     }
     pub fn frost(&self) -> String {
@@ -199,6 +208,7 @@ impl Lang {
             Self::SV => "Frost".to_string(),
             Self::DA => "Frost".to_string(),
             Self::CS => "Mráz".to_string(),
+            Self::SK => "Mráz".to_string(),
         }
     }
     pub fn overcast(&self) -> String {
@@ -219,6 +229,7 @@ impl Lang {
             Self::SV => "Mulet".to_string(),
             Self::DA => "Overskyet".to_string(),
             Self::CS => "Zataženo".to_string(),
+            Self::SK => "Zamračené".to_string(),
         }
     }
     pub fn rain(&self) -> String {
@@ -239,6 +250,7 @@ impl Lang {
             Self::SV => "Regn".to_string(),
             Self::DA => "Regn".to_string(),
             Self::CS => "Déšť".to_string(),
+            Self::SK => "Dážď".to_string(),
         }
     }
     pub fn snow(&self) -> String {
@@ -259,6 +271,7 @@ impl Lang {
             Self::SV => "Snö".to_string(),
             Self::DA => "Sne".to_string(),
             Self::CS => "Sníh".to_string(),
+            Self::SK => "Sneh".to_string(),
         }
     }
     pub fn sunshine(&self) -> String {
@@ -279,6 +292,7 @@ impl Lang {
             Self::SV => "Solsken".to_string(),
             Self::DA => "Solskin".to_string(),
             Self::CS => "Jasno".to_string(),
+            Self::SK => "Jasno".to_string(),
         }
     }
     pub fn thunder(&self) -> String {
@@ -299,6 +313,7 @@ impl Lang {
             Self::SV => "Åska".to_string(),
             Self::DA => "Torden".to_string(),
             Self::CS => "Bouřka".to_string(),
+            Self::SK => "Búrka".to_string(),
         }
     }
     pub fn wind(&self) -> String {
@@ -319,6 +334,7 @@ impl Lang {
             Self::SV => "Vind".to_string(),
             Self::DA => "Vind".to_string(),
             Self::CS => "Vítr".to_string(),
+            Self::SK => "Vietor".to_string(),
         }
     }
     pub fn weather_desc(&self) -> String {
@@ -339,6 +355,7 @@ impl Lang {
             Lang::SV => "lang_sv".to_string(),
             Lang::DA => "lang_da".to_string(),
             Lang::CS => "lang_cs".to_string(),
+            Lang::SK => "lang_sk".to_string(),
         }
     }
 
@@ -360,6 +377,7 @@ impl Lang {
             Self::SV => "sv_SE".to_string(),
             Self::DA => "da_DK".to_string(),
             Self::CS => "cs_CZ".to_string(),
+            Self::SK => "sk_SK".to_string(),
         }
     }
 }
