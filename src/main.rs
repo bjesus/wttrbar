@@ -89,7 +89,13 @@ fn main() {
         file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
-    let current_condition = &weather["current_condition"][0];
+    //let current_condition = &weather["current_condition"][0];
+    let current_condition = &mut weather["current_condition"][0].clone();
+
+    // allow viewing sunrise/set times through --main-indicator
+    current_condition["sunrise"] = weather["weather"][0]["astronomy"][0]["sunrise"].clone();
+    current_condition["sunset"] = weather["weather"][0]["astronomy"][0]["sunset"].clone();
+
     let nearest_area = &weather["nearest_area"][0];
     let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
