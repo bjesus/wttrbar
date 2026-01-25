@@ -29,7 +29,7 @@ For NixOS, use the [NixPkg](https://search.nixos.org/packages?channel=24.05&show
 - `--fahrenheit` - use fahrenheit instead of celsius
 - `--mph` - use mph instead of km/h for wind speed
 - `--custom-indicator STRING` - optional expression that will be shown instead of main indicator. [`current_conditions` and `nearest_area` keys](https://wttr.in/?format=j1) surrounded by {} can be used. For example, `"{ICON} {FeelsLikeC} ({areaName})"` will be transformed to `"text":"🌧️ -4 (Amsterdam)"` in the output
-- `--lang LANG` - set language (currently `en`, `de`, `pl`, `tr`, `fr`, `ru`, `zh`, `be`, `es`, `pt`, `it`, `ja`, `uk`, `sv`, `da`, `cs`, `sk`; submit a PR to add yours)
+- `--lang LANG` - set language (currently `en`, `de`, `pl`, `tr`, `fr`, `ru`, `zh`, `be`, `es`, `pt`, `it`, `ja`, `uk`, `sv`, `da`, `cs`, `sk`, `ga`; submit a PR to add yours)
 - `--observation-time` - show the time the current weather conditions were measured
 
 e.g. `wttrbar --date-format "%m/%d" --location Paris --hide-conditions`
