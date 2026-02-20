@@ -24,7 +24,7 @@ pub const WEATHER_CODES: &[(i32, &str)] = &[
     (305, "🌧️"), // Heavy showers
     (308, "🌧️"), // Heavy rain
     (311, "🌧️"), // Light sleet
-    (314, "🌧️"), // Light sleet 
+    (314, "🌧️"), // Light sleet
     (317, "🌧️"), // Light sleet
     (320, "🌨️"), // Light snow
     (323, "🌨️"), // Light snow showers
@@ -87,7 +87,7 @@ pub const WEATHER_CODES_NERD: &[(i32, &str)] = &[
     (305, "󰖖"), // Heavy showers
     (308, "󰖖"), // Heavy rain
     (311, "󰙿"), // Light sleet
-    (314, "󰙿"), // Light sleet 
+    (314, "󰙿"), // Light sleet
     (317, "󰙿"), // Light sleet
     (320, "󰖘"), // Light snow
     (323, "󰖘"), // Light snow showers
@@ -124,5 +124,26 @@ pub const WEATHER_CODES_NERD: &[(i32, &str)] = &[
     (431, "󰖗"),
 ];
 
+pub const MOON_PHASES: &[(&str, &str)] = &[
+    ("New Moon", "🌑"),
+    ("Waxing Crescent", "🌒"),
+    ("First Quarter", "🌓"),
+    ("Waxing Gibbous", "🌔"),
+    ("Full Moon", "🌕"),
+    ("Waning Gibbous", "🌖"),
+    ("Last Quarter", "🌗"),
+    ("Waning Crescent", "🌘"),
+];
+
+pub const MOON_PHASES_NERD: &[(&str, &str)] = &[
+    ("New Moon", "󰽤"),
+    ("Waxing Crescent", "󰽧"),
+    ("First Quarter", "󰽡"),
+    ("Waxing Gibbous", "󰽨"),
+    ("Full Moon", "󰽢"),
+    ("Waning Gibbous", "󰽦"),
+    ("Last Quarter", "󰽣"),
+    ("Waning Crescent", "󰽥"),
+];
 
 pub const ICON_PLACEHOLDER: &str = "{ICON}";

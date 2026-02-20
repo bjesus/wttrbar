@@ -2,8 +2,8 @@ use chrono::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::constants::{ICON_PLACEHOLDER, MOON_PHASES, MOON_PHASES_NERD};
 use crate::lang::Lang;
-use crate::ICON_PLACEHOLDER;
 
 pub fn format_time(time: &str, ampm: bool) -> String {
     let hour = time.replace("00", "").parse::<i32>().unwrap();
@@ -68,6 +68,17 @@ pub fn format_ampm_time(day: &serde_json::Value, key: &str, ampm: bool) -> Strin
             .to_string()
     }
 }
+
+pub fn format_moon_phase_icon(phase: &str, nerd: bool) -> &str {
+    let fallback = if nerd { "󰽤" } else { "🌑" };
+    let table = if nerd { MOON_PHASES_NERD } else { MOON_PHASES };
+    table
+        .iter()
+        .find(|(name, _)| *name == phase)
+        .map(|(_, icon)| *icon)
+        .unwrap_or(fallback)
+}
+
 pub fn format_indicator(
     weather_conditions: &Value,
     area: &Value,
@@ -109,4 +120,51 @@ pub fn format_indicator(
         formatted_indicator = formatted_indicator.replace(ICON_PLACEHOLDER, weather_icon)
     }
     formatted_indicator
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_moon_phase_icon;
+
+    #[test]
+    fn maps_all_emoji_moon_phases() {
+        let cases = [
+            ("New Moon", "🌑"),
+            ("Waxing Crescent", "🌒"),
+            ("First Quarter", "🌓"),
+            ("Waxing Gibbous", "🌔"),
+            ("Full Moon", "🌕"),
+            ("Waning Gibbous", "🌖"),
+            ("Last Quarter", "🌗"),
+            ("Waning Crescent", "🌘"),
+        ];
+
+        for (phase, icon) in cases {
+            assert_eq!(format_moon_phase_icon(phase, false), icon);
+        }
+    }
+
+    #[test]
+    fn maps_all_nerd_moon_phases() {
+        let cases = [
+            ("New Moon", "󰽤"),
+            ("Waxing Crescent", "󰽧"),
+            ("First Quarter", "󰽡"),
+            ("Waxing Gibbous", "󰽨"),
+            ("Full Moon", "󰽢"),
+            ("Waning Gibbous", "󰽦"),
+            ("Last Quarter", "󰽣"),
+            ("Waning Crescent", "󰽥"),
+        ];
+
+        for (phase, icon) in cases {
+            assert_eq!(format_moon_phase_icon(phase, true), icon);
+        }
+    }
+
+    #[test]
+    fn falls_back_for_unknown_phase() {
+        assert_eq!(format_moon_phase_icon("Unknown", false), "🌑");
+        assert_eq!(format_moon_phase_icon("Unknown", true), "󰽤");
+    }
 }
