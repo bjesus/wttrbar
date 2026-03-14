@@ -6,14 +6,17 @@ use std::process::exit;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use chrono::{Locale, NaiveDate, NaiveTime, Local, Timelike};
+use chrono::{Local, Locale, NaiveDate, NaiveTime, Timelike};
 use clap::Parser;
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
-use crate::constants::{ICON_PLACEHOLDER, WEATHER_CODES, WEATHER_CODES_NERD};
-use crate::format::{format_ampm_time, format_chances, format_indicator, format_temp, format_time};
+use crate::constants::{WEATHER_CODES, WEATHER_CODES_NERD};
+use crate::format::{
+    format_ampm_time, format_chances, format_indicator, format_moon_phase_icon, format_temp,
+    format_time,
+};
 use crate::lang::Lang;
 
 mod cli;
@@ -170,11 +173,7 @@ fn main() {
         .filter(|part| !part.is_empty())
         .collect();
 
-    tooltip += &format!(
-        "{}: {}\n",
-        lang.location(),
-        location_parts.join(", ")
-    );
+    tooltip += &format!("{}: {}\n", lang.location(), location_parts.join(", "));
 
     if args.observation_time {
         if let Some(obs_time) = current_condition["observation_time"].as_str() {
@@ -209,7 +208,10 @@ fn main() {
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         let locale = Locale::try_from(lang.locale_str().as_str()).unwrap_or(Locale::en_US);
-        tooltip += &format!("{}</b>\n", date.format_localized(args.date_format.as_str(), locale));
+        tooltip += &format!(
+            "{}</b>\n",
+            date.format_localized(args.date_format.as_str(), locale)
+        );
 
         let (max_temp, min_temp) = if args.fahrenheit {
             (
@@ -231,12 +233,19 @@ fn main() {
             min_temp
         );
 
+        let moon_phase = day["astronomy"][0]["moon_phase"].as_str().unwrap_or("");
+        let moon_illumination = day["astronomy"][0]["moon_illumination"]
+            .as_str()
+            .unwrap_or("?");
+
         tooltip += &format!(
-            "{} {} {} {}\n",
+            "{} {} {} {} {} {}%\n",
             if args.nerd { "󰖜" } else { "🌅" },
             format_ampm_time(day, "sunrise", args.ampm),
             if args.nerd { "󰖛" } else { "🌇" },
-            format_ampm_time(day, "sunset", args.ampm)
+            format_ampm_time(day, "sunset", args.ampm),
+            format_moon_phase_icon(moon_phase, args.nerd),
+            moon_illumination
         );
 
         for hour in day["hourly"].as_array().unwrap() {
