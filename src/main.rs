@@ -61,12 +61,12 @@ fn main() {
     let client = Client::new();
     let weather = if is_cache_file_recent {
         let json_str = read_to_string(&cachefile).unwrap();
-        serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
+        serde_json::from_str::<serde_json::Value>(&json_str).unwrap()["data"].clone()
     } else {
         loop {
             match client.get(&weather_url).send() {
                 Ok(response) => match response.json::<Value>() {
-                    Ok(json) => break json,
+                    Ok(json) => break json["data"].clone(),
                     Err(_) => {
                         println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"invalid wttr.in response\"}}");
                         exit(0)
@@ -92,7 +92,7 @@ fn main() {
         file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
-    let current_condition = &weather["data"]["current_condition"][0];
+    let current_condition = &weather["current_condition"][0];
     let nearest_area = &weather["nearest_area"][0];
     let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
@@ -163,17 +163,22 @@ fn main() {
         lang.humidity(),
         current_condition["humidity"].as_str().unwrap()
     );
-    // let request = &weather["data"]["request"][0];
-    // let area_name = request["query"].as_str().unwrap_or("");
-    // let region = "";
-    // let country = "";
 
-    // let location_parts: Vec<&str> = vec![area_name, region, country]
-    //     .into_iter()
-    //     .filter(|part| !part.is_empty())
-    //     .collect();
+    let nearest_area = &weather["nearest_area"][0];
+    if !nearest_area.is_null() {
+        let area_name = nearest_area["areaName"][0]["value"].as_str().unwrap_or("");
+        let region = nearest_area["region"][0]["value"].as_str().unwrap_or("");
+        let country = nearest_area["country"][0]["value"].as_str().unwrap_or("");
 
-    // tooltip += &format!("{}: {}\n", lang.location(), location_parts.join(", "));
+        let location_parts: Vec<&str> = vec![area_name, region, country]
+            .into_iter()
+            .filter(|part| !part.is_empty())
+            .collect();
+
+        if !location_parts.is_empty() {
+            tooltip += &format!("{}: {}\\n", lang.location(), location_parts.join(", "));
+        }
+    }
 
     if args.observation_time {
         if let Some(obs_time) = current_condition["observation_time"].as_str() {
@@ -191,10 +196,7 @@ fn main() {
     let now = Local::now();
 
     let today = Local::now().date_naive();
-    let mut forecast = weather["data"]["weather"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let mut forecast = weather["weather"].as_array().unwrap().clone();
     forecast.retain(|item| {
         let item_date =
             NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
