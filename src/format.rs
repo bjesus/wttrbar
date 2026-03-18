@@ -126,7 +126,8 @@ pub fn format_indicator(
 
 #[cfg(test)]
 mod tests {
-    use super::format_moon_phase_icon;
+    use super::*;
+    use serde_json::json;
 
     #[test]
     fn maps_all_emoji_moon_phases() {
@@ -168,5 +169,100 @@ mod tests {
     fn falls_back_for_unknown_phase() {
         assert_eq!(format_moon_phase_icon("Unknown", false), "🌑");
         assert_eq!(format_moon_phase_icon("Unknown", true), "󰽤");
+    }
+
+    // --- format_time ---
+
+    #[test]
+    fn format_time_24h() {
+        assert_eq!(format_time("800", false), "08");
+        assert_eq!(format_time("1200", false), "12");
+        assert_eq!(format_time("0", false), "00");
+    }
+
+    #[test]
+    fn format_time_ampm() {
+        assert_eq!(format_time("0", true).trim(), "12am");
+        assert_eq!(format_time("800", true).trim(), "8am");
+        assert_eq!(format_time("1200", true).trim(), "12pm");
+        assert_eq!(format_time("1300", true).trim(), "1pm");
+    }
+
+    // --- format_temp ---
+
+    #[test]
+    fn format_temp_pads_to_three_chars() {
+        assert_eq!(format_temp("5"), "  5°");
+        assert_eq!(format_temp("20"), " 20°");
+        assert_eq!(format_temp("100"), "100°");
+    }
+
+    // --- format_indicator: custom_indicator ---
+
+    fn make_conditions() -> serde_json::Value {
+        json!({
+            "temp_C": "7",
+            "FeelsLikeC": "-2",
+            "temp_F": "44",
+            "FeelsLikeF": "28",
+            "humidity": "80",
+            "weatherCode": "113",
+            "weatherDesc": [{"value": "Sunny"}]
+        })
+    }
+
+    #[test]
+    fn custom_indicator_substitutes_placeholders() {
+        let conditions = make_conditions();
+        let area = json!(null);
+        let result = format_indicator(&conditions, &area, "{temp_C}°C".to_string(), &"☀️");
+        assert_eq!(result, "7°C");
+    }
+
+    #[test]
+    fn custom_indicator_substitutes_icon_placeholder() {
+        let conditions = make_conditions();
+        let area = json!(null);
+        let result = format_indicator(&conditions, &area, "{ICON} {temp_C}".to_string(), &"☀️");
+        assert_eq!(result, "☀️ 7");
+    }
+
+    #[test]
+    fn custom_indicator_multiple_placeholders() {
+        let conditions = make_conditions();
+        let area = json!(null);
+        let result = format_indicator(
+            &conditions,
+            &area,
+            "{ICON}{temp_C}({FeelsLikeC})".to_string(),
+            &"☀️",
+        );
+        assert_eq!(result, "☀️7(-2)");
+    }
+
+    #[test]
+    fn custom_indicator_null_area_does_not_return_empty() {
+        // This is the regression test for the bug where nearest_area being null
+        // caused format_indicator to return an empty string.
+        let conditions = make_conditions();
+        let area = json!(null);
+        let result = format_indicator(&conditions, &area, "{temp_C}".to_string(), &"☀️");
+        assert_eq!(result, "7");
+    }
+
+    #[test]
+    fn custom_indicator_with_area_fields() {
+        let conditions = make_conditions();
+        let area = json!({"areaName": [{"value": "London"}]});
+        let result = format_indicator(&conditions, &area, "{temp_C} {areaName}".to_string(), &"☀️");
+        assert_eq!(result, "7 London");
+    }
+
+    #[test]
+    fn custom_indicator_invalid_conditions_returns_empty() {
+        let conditions = json!(null);
+        let area = json!(null);
+        let result = format_indicator(&conditions, &area, "{temp_C}".to_string(), &"☀️");
+        assert_eq!(result, "");
     }
 }
