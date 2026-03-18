@@ -89,12 +89,14 @@ pub fn format_indicator(
         return String::new();
     }
 
-    let (weather_map, area_map) = match (weather_conditions.as_object(), area.as_object()) {
-        (Some(w), Some(a)) => (w, a),
-        _ => return String::new(),
+    let weather_map = match weather_conditions.as_object() {
+        Some(w) => w,
+        None => return String::new(),
     };
     let mut combined_map = weather_map.clone();
-    combined_map.extend(area_map.clone());
+    if let Some(area_map) = area.as_object() {
+        combined_map.extend(area_map.clone());
+    }
 
     let mut formatted_indicator = expression.to_string();
     combined_map
