@@ -9,6 +9,7 @@ use std::time::{Duration, SystemTime};
 use chrono::{Local, Locale, NaiveDate, NaiveTime, Timelike};
 use clap::Parser;
 use reqwest::blocking::Client;
+use reqwest::Proxy;
 use serde_json::{json, Value};
 
 use crate::cli::Args;
@@ -58,7 +59,31 @@ fn main() {
         false
     };
 
-    let client = Client::new();
+    let client_builder = Client::builder();
+    let client = if !args.http_proxy.is_empty() {
+        let proxy_url =
+            if args.http_proxy.starts_with("http://") || args.http_proxy.starts_with("https://") {
+                args.http_proxy.clone()
+            } else {
+                format!("http://{}", args.http_proxy)
+            };
+        match Proxy::all(&proxy_url) {
+            Ok(proxy) => client_builder.proxy(proxy).build().unwrap_or_else(|e| {
+                eprintln!("Failed to build HTTP client with proxy: {}", e);
+                std::process::exit(1);
+            }),
+            Err(e) => {
+                eprintln!("Invalid proxy URL '{}': {}", proxy_url, e);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        client_builder.build().unwrap_or_else(|e| {
+            eprintln!("Failed to build HTTP client: {}", e);
+            std::process::exit(1);
+        })
+    };
+
     let weather = if is_cache_file_recent {
         let json_str = read_to_string(&cachefile).unwrap();
         serde_json::from_str::<serde_json::Value>(&json_str).unwrap()

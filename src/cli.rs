@@ -61,4 +61,11 @@ pub struct Args {
 
     #[arg(long, help = "show when the current weather conditions were measured")]
     pub observation_time: bool,
+
+    #[arg(
+        long,
+        default_value = "",
+        help = "http proxy to use for requests to wttr.in"
+    )]
+    pub http_proxy: String,
 }
