@@ -163,17 +163,17 @@ fn main() {
         lang.humidity(),
         current_condition["humidity"].as_str().unwrap()
     );
-    // let request = &weather["data"]["request"][0];
-    // let area_name = request["query"].as_str().unwrap_or("");
-    // let region = "";
-    // let country = "";
+    let nearest_area = &weather["nearest_area"][0];
+    let area_name = nearest_area["areaName"][0]["value"].as_str().unwrap();
+    let region = nearest_area["region"][0]["value"].as_str().unwrap();
+    let country = nearest_area["country"][0]["value"].as_str().unwrap();
 
-    // let location_parts: Vec<&str> = vec![area_name, region, country]
-    //     .into_iter()
-    //     .filter(|part| !part.is_empty())
-    //     .collect();
+    let location_parts: Vec<&str> = vec![area_name, region, country]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect();
 
-    // tooltip += &format!("{}: {}\n", lang.location(), location_parts.join(", "));
+    tooltip += &format!("{}: {}\n", lang.location(), location_parts.join(", "));
 
     if args.observation_time {
         if let Some(obs_time) = current_condition["observation_time"].as_str() {
@@ -191,10 +191,7 @@ fn main() {
     let now = Local::now();
 
     let today = Local::now().date_naive();
-    let mut forecast = weather["weather"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let mut forecast = weather["weather"].as_array().unwrap().clone();
     forecast.retain(|item| {
         let item_date =
             NaiveDate::parse_from_str(item["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
