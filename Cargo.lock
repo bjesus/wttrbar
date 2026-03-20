@@ -1667,7 +1667,7 @@ dependencies = [
 
 [[package]]
 name = "wttrbar"
-version = "0.14.1"
+version = "0.14.3"
 dependencies = [
  "chrono",
  "clap",
