@@ -92,7 +92,7 @@ fn main() {
         file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
             .expect(format!("Unable to write cache file at {}", cachefile).as_str());
     }
-    let current_condition = &weather["data"]["current_condition"][0];
+    let current_condition = &weather["current_condition"][0];
     let nearest_area = &weather["nearest_area"][0];
     let feels_like = if args.fahrenheit {
         current_condition["FeelsLikeF"].as_str().unwrap()
@@ -191,7 +191,7 @@ fn main() {
     let now = Local::now();
 
     let today = Local::now().date_naive();
-    let mut forecast = weather["data"]["weather"]
+    let mut forecast = weather["weather"]
         .as_array()
         .cloned()
         .unwrap_or_default();
