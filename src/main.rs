@@ -237,7 +237,7 @@ fn main() {
             .unwrap_or("?");
 
         tooltip += &format!(
-            "{} {} {} {} {} {}%\n",
+            "{} {} {} {} {} {}%\n\n",
             if args.nerd { "󰖜" } else { "🌅" },
             format_ampm_time(day, "sunrise", args.ampm),
             if args.nerd { "󰖛" } else { "🌇" },
@@ -261,7 +261,7 @@ fn main() {
             }
 
             let mut tooltip_line = format!(
-                "{} {} {} {}",
+                "{}  \t{}  \t{}  \t{}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 if args.nerd {
                     WEATHER_CODES_NERD
