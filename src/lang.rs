@@ -353,27 +353,44 @@ impl Lang {
             Self::GA => "Gaoth".to_string(),
         }
     }
-    pub fn weather_desc(&self) -> String {
+    /// Candidate keys (in priority order) under which wttr.in may expose the
+    /// localized weather description for this language. wttr.in currently
+    /// returns it under the literal key `lang_xx` for every non-English
+    /// subdomain; older responses used per-language keys like `lang_de`. We
+    /// keep both so the tool works regardless of which format the server
+    /// returns.
+    pub fn weather_desc_keys(&self) -> &'static [&'static str] {
         match &self {
-            Lang::EN => "weatherDesc".to_string(),
-            Lang::DE => "lang_de".to_string(),
-            Lang::PL => "lang_pl".to_string(),
-            Lang::RU => "lang_ru".to_string(),
-            Lang::TR => "lang_tr".to_string(),
-            Lang::FR => "lang_fr".to_string(),
-            Lang::BE => "lang_be".to_string(),
-            Lang::ZH => "lang_zh".to_string(),
-            Lang::ES => "lang_es".to_string(),
-            Lang::PT => "lang_pt".to_string(),
-            Lang::IT => "lang_it".to_string(),
-            Lang::JA => "lang_ja".to_string(),
-            Lang::UK => "lang_uk".to_string(),
-            Lang::SV => "lang_sv".to_string(),
-            Lang::DA => "lang_da".to_string(),
-            Lang::CS => "lang_cs".to_string(),
-            Lang::SK => "lang_sk".to_string(),
-            Self::GA => "lang_ga".to_string(),
+            Lang::EN => &["weatherDesc"],
+            Lang::DE => &["lang_de", "lang_xx", "weatherDesc"],
+            Lang::PL => &["lang_pl", "lang_xx", "weatherDesc"],
+            Lang::RU => &["lang_ru", "lang_xx", "weatherDesc"],
+            Lang::TR => &["lang_tr", "lang_xx", "weatherDesc"],
+            Lang::FR => &["lang_fr", "lang_xx", "weatherDesc"],
+            Lang::BE => &["lang_be", "lang_xx", "weatherDesc"],
+            Lang::ZH => &["lang_zh", "lang_xx", "weatherDesc"],
+            Lang::ES => &["lang_es", "lang_xx", "weatherDesc"],
+            Lang::PT => &["lang_pt", "lang_xx", "weatherDesc"],
+            Lang::IT => &["lang_it", "lang_xx", "weatherDesc"],
+            Lang::JA => &["lang_ja", "lang_xx", "weatherDesc"],
+            Lang::UK => &["lang_uk", "lang_xx", "weatherDesc"],
+            Lang::SV => &["lang_sv", "lang_xx", "weatherDesc"],
+            Lang::DA => &["lang_da", "lang_xx", "weatherDesc"],
+            Lang::CS => &["lang_cs", "lang_xx", "weatherDesc"],
+            Lang::SK => &["lang_sk", "lang_xx", "weatherDesc"],
+            Lang::GA => &["lang_ga", "lang_xx", "weatherDesc"],
         }
+    }
+
+    /// Extract the localized weather description value from a `current_condition`
+    /// or `hourly` JSON object, trying each candidate key in order.
+    pub fn weather_desc_value<'a>(&self, node: &'a serde_json::Value) -> Option<&'a str> {
+        for key in self.weather_desc_keys() {
+            if let Some(s) = node[*key][0]["value"].as_str() {
+                return Some(s);
+            }
+        }
+        None
     }
 
     pub fn locale_str(&self) -> String {

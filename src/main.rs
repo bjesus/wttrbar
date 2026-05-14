@@ -135,9 +135,7 @@ fn main() {
 
     let mut tooltip = format!(
         "<b>{}</b> {}°\n",
-        current_condition[lang.weather_desc()][0]["value"]
-            .as_str()
-            .unwrap(),
+        lang.weather_desc_value(current_condition).unwrap(),
         if args.fahrenheit {
             current_condition["temp_F"].as_str().unwrap()
         } else {
@@ -284,7 +282,7 @@ fn main() {
                 } else {
                     format_temp(hour["FeelsLikeC"].as_str().unwrap())
                 },
-                hour[lang.weather_desc()][0]["value"].as_str().unwrap(),
+                lang.weather_desc_value(hour).unwrap(),
             );
             if !args.hide_conditions {
                 tooltip_line += format!(", {}", format_chances(hour, &lang)).as_str();
@@ -295,9 +293,9 @@ fn main() {
     }
     data.insert("tooltip", tooltip);
 
-    let css_class = current_condition[lang.weather_desc()][0]["value"]
-        .as_str()
-        .unwrap()
+    let css_class = lang
+        .weather_desc_value(current_condition)
+        .unwrap_or("")
         .to_lowercase()
         .split(',')
         .next()
