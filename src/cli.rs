@@ -65,7 +65,7 @@ pub struct Args {
     #[arg(
         long,
         default_value = "",
-        help = "http proxy to use for requests to wttr.in"
+        help = "http/socks proxy to use for requests to wttr.in"
     )]
-    pub http_proxy: String,
+    pub proxy: String,
 }

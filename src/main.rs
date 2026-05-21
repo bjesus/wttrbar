@@ -60,11 +60,11 @@ fn main() {
     };
 
     let client_builder = Client::builder();
-    let client = if !args.http_proxy.is_empty() {
-        let proxy_url = if args.http_proxy.contains("://") {
-            args.http_proxy.clone()
+    let client = if !args.proxy.is_empty() {
+        let proxy_url = if args.proxy.contains("://") {
+            args.proxy.clone()
         } else {
-            format!("http://{}", args.http_proxy)
+            format!("http://{}", args.proxy)
         };
         match Proxy::all(&proxy_url) {
             Ok(proxy) => client_builder.proxy(proxy).build().unwrap_or_else(|e| {
