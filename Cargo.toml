@@ -12,5 +12,6 @@ reqwest = { version = "0.12.9", features = [
   "blocking",
   "json",
   "rustls-tls-native-roots",
+  "socks"
 ] }
 serde_json = "1.0.133"

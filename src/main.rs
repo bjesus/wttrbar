@@ -61,12 +61,11 @@ fn main() {
 
     let client_builder = Client::builder();
     let client = if !args.http_proxy.is_empty() {
-        let proxy_url =
-            if args.http_proxy.starts_with("http://") || args.http_proxy.starts_with("https://") {
-                args.http_proxy.clone()
-            } else {
-                format!("http://{}", args.http_proxy)
-            };
+        let proxy_url = if args.http_proxy.contains("://") {
+            args.http_proxy.clone()
+        } else {
+            format!("http://{}", args.http_proxy)
+        };
         match Proxy::all(&proxy_url) {
             Ok(proxy) => client_builder.proxy(proxy).build().unwrap_or_else(|e| {
                 eprintln!("Failed to build HTTP client with proxy: {}", e);
