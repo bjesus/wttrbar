@@ -3,7 +3,19 @@ pub const WEATHER_CODES: &[(i32, &str)] = &[
     (116, "🌤️"), // Partly cloudly
     (119, "☁️"), // Cloudy
     (122, "🌥️"), // Very cloudy
+    (125, "🌫️"), // Haze
+    (128, "🌫️"), // Dust haze
+    (131, "🌫️"), // Blowing dust
+    (134, "🌫️"), // Dust storm
+    (137, "🌫️"), // Sandstorm
+    (140, "🌫️"), // Severe sandstorm
     (143, "🌫️"), // Fog
+    (146, "🌫️"), // Smoke
+    (149, "🌫️"), // Smoky haze
+    (152, "🌫️"), // Smog
+    (155, "🌫️"), // Severe smog
+    (158, "🌫️"), // Saharan dust
+    (161, "🌫️"), // Dust
     (176, "🌦️"), // Light showers
     (179, "🌧️"), // Light sleet showers
     (182, "🌧️"), // Light sleet
@@ -66,7 +78,19 @@ pub const WEATHER_CODES_NERD: &[(i32, &str)] = &[
     (116, "󰖕"), // Partly cloudly
     (119, "󰼰"), // Cloudy
     (122, "󰖐"), // Very cloudy
+    (125, "󰖑"), // Haze
+    (128, "󰖑"), // Dust haze
+    (131, "󰖑"), // Blowing dust
+    (134, "󰖑"), // Dust storm
+    (137, "󰖑"), // Sandstorm
+    (140, "󰖑"), // Severe sandstorm
     (143, "󰖑"), // Fog
+    (146, "󰖑"), // Smoke
+    (149, "󰖑"), // Smoky haze
+    (152, "󰖑"), // Smog
+    (155, "󰖑"), // Severe smog
+    (158, "󰖑"), // Saharan dust
+    (161, "󰖑"), // Dust
     (176, "󰖗"), // Light showers
     (179, "󰙿"), // Light sleet showers
     (182, "󰙿"), // Light sleet
@@ -147,3 +171,42 @@ pub const MOON_PHASES_NERD: &[(&str, &str)] = &[
 ];
 
 pub const ICON_PLACEHOLDER: &str = "{ICON}";
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_weather_code() {
+        let weather_code =
+            reqwest::blocking::get("https://www.worldweatheronline.com/feed/wwoConditionCodes.txt")
+                .expect("Get weather code from www.worldweatheronline.com success")
+                .text()
+                .expect("Decode http response from www.worldweatheronline.com success");
+        let mut wc_lines = weather_code.lines();
+
+        // skip header line
+        wc_lines.next();
+
+        for wc in wc_lines {
+            let code = wc
+                .split_whitespace()
+                .next()
+                .expect("First field is weather code")
+                .parse::<i32>()
+                .expect("Parse weather code to i32");
+            assert!(
+                crate::constants::WEATHER_CODES
+                    .iter()
+                    .find(|(c, _)| *c == code)
+                    .is_some(),
+                "WEATHER_CODES missing a weather code {code}."
+            );
+            assert!(
+                crate::constants::WEATHER_CODES_NERD
+                    .iter()
+                    .find(|(c, _)| *c == code)
+                    .is_some(),
+                "WEATHER_CODES_NERD missing a weather code {code}."
+            );
+        }
+    }
+}
