@@ -61,4 +61,7 @@ pub struct Args {
 
     #[arg(long, help = "show when the current weather conditions were measured")]
     pub observation_time: bool,
+
+    #[arg(long, help = "replace spaces with tabs in tooltip_line")]
+    pub tabs: bool,
 }

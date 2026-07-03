@@ -260,8 +260,9 @@ fn main() {
                 continue;
             }
 
+            let sep = if args.tabs { "\t" } else { " " };
             let mut tooltip_line = format!(
-                "{} {} {} {}",
+                "{}{sep}{}{sep}{}{sep}{}",
                 format_time(hour["time"].as_str().unwrap(), args.ampm),
                 if args.nerd {
                     WEATHER_CODES_NERD
