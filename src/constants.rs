@@ -3,7 +3,19 @@ pub const WEATHER_CODES: &[(i32, &str)] = &[
     (116, "🌤️"), // Partly cloudly
     (119, "☁️"), // Cloudy
     (122, "🌥️"), // Very cloudy
+    (125, "🌫️"), // Haze
+    (128, "🌫️"), // Dust haze
+    (131, "💨"), // Blowing dust
+    (134, "🌪️"), // Dust storm
+    (137, "🌪️"), // Sandstorm
+    (140, "🌪️"), // Severe sandstorm
     (143, "🌫️"), // Fog
+    (146, "🌫️"), // Smoke
+    (149, "🌫️"), // Smoky haze
+    (152, "🌫️"), // Smog
+    (155, "🌫️"), // Severe smog
+    (158, "🌫️"), // Saharan dust
+    (161, "🌫️"), // Dust
     (176, "🌦️"), // Light showers
     (179, "🌧️"), // Light sleet showers
     (182, "🌧️"), // Light sleet
@@ -66,7 +78,19 @@ pub const WEATHER_CODES_NERD: &[(i32, &str)] = &[
     (116, "󰖕"), // Partly cloudly
     (119, "󰼰"), // Cloudy
     (122, "󰖐"), // Very cloudy
+    (125, "󰖑"), // Haze
+    (128, ""), // Dust haze
+    (131, "󰖝"), // Blowing dust
+    (134, "󰼹"), // Dust storm
+    (137, "󰼹"), // Sandstorm
+    (140, "󰼹"), // Severe sandstorm
     (143, "󰖑"), // Fog
+    (146, "󰖑"), // Smoke
+    (149, "󰖑"), // Smoky haze
+    (152, "󰖑"), // Smog
+    (155, "󰖑"), // Severe smog
+    (158, ""), // Saharan dust
+    (161, ""), // Dust
     (176, "󰖗"), // Light showers
     (179, "󰙿"), // Light sleet showers
     (182, "󰙿"), // Light sleet
