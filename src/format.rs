@@ -21,6 +21,22 @@ pub fn format_time(time: &str, ampm: bool) -> String {
     }
 }
 
+pub fn get_observation_time(current_condition: &Value, ampm: bool) -> Option<String> {
+    let obs_time = current_condition["observation_time"].as_str()?;
+    let time = NaiveTime::parse_from_str(obs_time, "%I:%M %p").ok()?;
+
+    let utc_today = Utc::now().date_naive();
+    let utc_datetime = utc_today.and_time(time);
+    let local_datetime = Local.from_utc_datetime(&utc_datetime);
+    let local_time = local_datetime.time();
+
+    Some(if ampm {
+        local_time.format("%I:%M %p").to_string()
+    } else {
+        local_time.format("%H:%M").to_string()
+    })
+}
+
 pub fn format_temp(temp: &str) -> String {
     format!("{: >3}°", temp)
 }
@@ -264,5 +280,27 @@ mod tests {
         let area = json!(null);
         let result = format_indicator(&conditions, &area, "{temp_C}".to_string(), &"☀️");
         assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_get_observation_time() {
+        let condition = json!({
+            "observation_time": "08:26 PM"
+        });
+
+        // Dynamic expected local time based on system offset
+        let time = NaiveTime::parse_from_str("08:26 PM", "%I:%M %p").unwrap();
+        let utc_datetime = Utc::now().date_naive().and_time(time);
+        let local_datetime = Local.from_utc_datetime(&utc_datetime);
+        let local_time = local_datetime.time();
+
+        let expected_24h = local_time.format("%H:%M").to_string();
+        let expected_ampm = local_time.format("%I:%M %p").to_string();
+
+        assert_eq!(get_observation_time(&condition, false), Some(expected_24h));
+        assert_eq!(get_observation_time(&condition, true), Some(expected_ampm));
+
+        let condition_empty = json!({});
+        assert_eq!(get_observation_time(&condition_empty, false), None);
     }
 }

@@ -6,7 +6,7 @@ use std::process::exit;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use chrono::{Local, Locale, NaiveDate, NaiveTime, Timelike};
+use chrono::{Local, Locale, NaiveDate, Timelike};
 use clap::Parser;
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
@@ -15,7 +15,7 @@ use crate::cli::Args;
 use crate::constants::{WEATHER_CODES, WEATHER_CODES_NERD};
 use crate::format::{
     format_ampm_time, format_chances, format_indicator, format_moon_phase_icon, format_temp,
-    format_time,
+    format_time, get_observation_time,
 };
 use crate::lang::Lang;
 
@@ -174,15 +174,8 @@ fn main() {
     tooltip += &format!("{}: {}\n", lang.location(), location_parts.join(", "));
 
     if args.observation_time {
-        if let Some(obs_time) = current_condition["observation_time"].as_str() {
-            if let Ok(time) = NaiveTime::parse_from_str(obs_time, "%I:%M %p") {
-                let formatted_time = if args.ampm {
-                    obs_time.to_string()
-                } else {
-                    time.format("%H:%M").to_string()
-                };
-                tooltip += &format!("{}: {}\n", lang.observation_time(), formatted_time);
-            }
+        if let Some(formatted_time) = get_observation_time(current_condition, args.ampm) {
+            tooltip += &format!("{}: {}\n", lang.observation_time(), formatted_time);
         }
     }
 
