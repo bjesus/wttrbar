@@ -52,7 +52,7 @@ fn main() {
         let ten_minutes_ago = SystemTime::now() - Duration::from_secs(600);
         metadata
             .modified()
-            .map_or(false, |mod_time| mod_time > ten_minutes_ago)
+            .is_ok_and(|mod_time| mod_time > ten_minutes_ago)
     } else {
         false
     };
@@ -88,10 +88,10 @@ fn main() {
 
     if !is_cache_file_recent {
         let mut file = File::create(&cachefile)
-            .expect(format!("Unable to create cache file at {}", cachefile).as_str());
+            .unwrap_or_else(|_| panic!("Unable to create cache file at {}", cachefile));
 
         file.write_all(serde_json::to_string_pretty(&weather).unwrap().as_bytes())
-            .expect(format!("Unable to write cache file at {}", cachefile).as_str());
+            .unwrap_or_else(|_| panic!("Unable to write cache file at {}", cachefile));
     }
     let current_condition = &weather["current_condition"][0];
     let nearest_area = &weather["nearest_area"][0];
