@@ -8,8 +8,7 @@ use std::time::{Duration, SystemTime};
 
 use chrono::{Local, Locale, NaiveDate, Timelike};
 use clap::Parser;
-use reqwest::blocking::Client;
-use serde_json::{json, Value};
+use serde_json::json;
 
 use crate::cli::Args;
 use crate::constants::{WEATHER_CODES, WEATHER_CODES_NERD};
@@ -58,14 +57,16 @@ fn main() {
         false
     };
 
-    let client = Client::new();
     let weather = if is_cache_file_recent {
         let json_str = read_to_string(&cachefile).unwrap();
         serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
     } else {
         loop {
-            match client.get(&weather_url).send() {
-                Ok(response) => match response.json::<Value>() {
+            match ureq::get(&weather_url)
+                .call()
+                .and_then(|resp| resp.into_body().read_to_string())
+            {
+                Ok(response) => match serde_json::from_str(&response) {
                     Ok(json) => break json,
                     Err(_) => {
                         println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"invalid wttr.in response\"}}");
