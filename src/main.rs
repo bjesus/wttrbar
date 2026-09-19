@@ -149,6 +149,13 @@ fn main() {
             lang.wind(),
             current_condition["windspeedMiles"].as_str().unwrap()
         );
+    } else if args.ms {
+        let kmph: f64 = current_condition["windspeedKmph"]
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap_or(0.0);
+        tooltip += &format!("{}: {:.1} m/s\n", lang.wind(), kmph / 3.6);
     } else {
         tooltip += &format!(
             "{}: {} km/h\n",
