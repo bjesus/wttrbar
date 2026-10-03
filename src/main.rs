@@ -206,6 +206,9 @@ fn main() {
         }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         let locale = Locale::try_from(lang.locale_str().as_str()).unwrap_or(Locale::en_US);
+        if i >= 2 {
+            tooltip += &format!("{}, ", date.format_localized("%A", locale));
+        }
         tooltip += &format!(
             "{}</b>\n",
             date.format_localized(args.date_format.as_str(), locale)
