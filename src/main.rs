@@ -197,20 +197,17 @@ fn main() {
     });
 
     for (i, day) in forecast.iter().enumerate() {
-        tooltip += "\n<b>";
-        if i == 0 {
-            tooltip += &format!("{}, ", lang.today());
-        }
-        if i == 1 {
-            tooltip += &format!("{}, ", lang.tomorrow());
-        }
         let date = NaiveDate::parse_from_str(day["date"].as_str().unwrap(), "%Y-%m-%d").unwrap();
         let locale = Locale::try_from(lang.locale_str().as_str()).unwrap_or(Locale::en_US);
-        if i >= 2 {
-            tooltip += &format!("{}, ", date.format_localized("%A", locale));
-        }
+
+        let day_name = match i {
+            0 => lang.today(),
+            1 => lang.tomorrow(),
+            _ => date.format_localized("%A", locale).to_string(),
+        };
         tooltip += &format!(
-            "{}</b>\n",
+            "\n<b>{}, {}</b>\n",
+            day_name,
             date.format_localized(args.date_format.as_str(), locale)
         );
 
