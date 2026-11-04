@@ -63,12 +63,13 @@ fn main() {
         let json_str = read_to_string(&cachefile).unwrap();
         serde_json::from_str::<serde_json::Value>(&json_str).unwrap()
     } else {
+        let error_icon = if args.nerd { "󰅤" } else { "⛓️‍💥" };
         loop {
             match client.get(&weather_url).send() {
                 Ok(response) => match response.json::<Value>() {
                     Ok(json) => break json,
                     Err(_) => {
-                        println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"invalid wttr.in response\"}}");
+                        println!("{{\"text\":\"{}\", \"tooltip\":\"invalid wttr.in response\"}}", error_icon);
                         exit(0)
                     }
                 },
@@ -77,7 +78,7 @@ fn main() {
                     thread::sleep(time::Duration::from_millis(500 * iterations));
 
                     if iterations == threshold {
-                        println!("{{\"text\":\"⛓️‍💥\", \"tooltip\":\"cannot access wttr.in\"}}");
+                        println!("{{\"text\":\"{}\", \"tooltip\":\"cannot access wttr.in\"}}", error_icon);
                         exit(0)
                     }
                 }
